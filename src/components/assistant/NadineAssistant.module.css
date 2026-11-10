@@ -1,0 +1,44 @@
+.launcher {
+  isolation: isolate;
+}
+
+.motion {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-origin: 50% 95%;
+  /* Rest quietly between occasional waves. */
+}
+
+.sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: url('/assistant/nadine-wave.png') 0 0 / 400% 100% no-repeat;
+  animation: nadine-wave 18s step-end infinite;
+}
+
+@keyframes nadine-wave {
+  0%, 85%, 100% { background-position: 0 0; }
+  88%, 94% { background-position: 33.333333% 0; }
+  91%, 97% { background-position: 66.666667% 0; }
+}
+
+.launcher[aria-expanded='true'] .motion,
+.launcher[aria-expanded='true'] .sprite,
+.launcher[data-paused='true'] .motion,
+.launcher[data-paused='true'] .sprite,
+.launcher:hover .motion,
+.launcher:hover .sprite,
+.launcher:focus-visible .motion,
+.launcher:focus-visible .sprite {
+  animation-play-state: paused;
+}
+
+@media (max-height: 500px) {
+  .launcher { height: 64px; width: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion, .sprite { animation: none; }
+}

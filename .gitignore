@@ -1,0 +1,57 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/.next-dev-*/
+/out/
+
+# Production
+/build
+
+# Local credentials; commit only the placeholder template
+.env*
+!.env.example
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local
+.DS_Store
+*.pem
+/*_backup.sql
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Local uploads, exports and editor state
+/uploads/
+/storage/
+*.sql.gz
+*.sql.zip
+*.dump
+*.bak
+*.key
+*.p12
+*.pfx
+.idea/
+.vscode/
+# Keep Prisma migration SQL: it is source code, not a database export.
+*.sql
+!prisma/migrations/**/*.sql
+
+# Local audit contains private record identifiers and machine paths
+/docs/SECURITY-AUDIT-2026-11-09.md

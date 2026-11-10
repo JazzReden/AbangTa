@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+# Preserve historical migration checksums and upstream vendor formatting.
+prisma/migrations/** whitespace=-blank-at-eof
+vendor/** whitespace=-blank-at-eof

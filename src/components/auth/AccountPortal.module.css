@@ -1,0 +1,42 @@
+.page { min-height: 100svh; background: hsl(var(--background)); color: hsl(var(--foreground)); position: relative; isolation: isolate; padding: 0 40px 60px; overflow: clip; }
+.page::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(hsl(var(--border) / .28) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / .28) 1px, transparent 1px); background-size: 64px 64px; mask-image: linear-gradient(to bottom, black, transparent 80%); }
+.topbar { max-width: 1200px; margin-inline: auto; min-height: 88px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-size: 25px; font-weight: 700; letter-spacing: -1px; min-height: 48px; }
+.brandIcon { color: white; width: 38px; height: 40px; background: hsl(var(--primary)); border-radius: 12px; display: grid; place-items: center; }
+.brandDot { color: hsl(var(--primary)); margin-left: -10px; }
+.layout { width: 100%; max-width: 1200px; min-height: calc(100svh - 148px); margin-inline: auto; display: grid; place-items: center; padding-block: 28px; }
+.illustration { height: 320px; position: relative; overflow: hidden; border-radius: 110px 110px 20px 20px; background: hsl(var(--secondary) / .65); max-width: 500px; margin-top: 36px; isolation: isolate; }
+.building { position: absolute; width: 64%; height: 72%; bottom: 12px; left: 18%; }
+.formCard { width: 100%; max-width: 500px; justify-self: center; position: relative; z-index: 1; padding: 36px 36px 32px; border-radius: 26px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: 0 12px 50px hsl(var(--foreground) / .045); }
+.formHeader { text-align: center; }
+.formHeader h1 { font-size: clamp(28px, 2.6vw, 36px); line-height: 1.15; letter-spacing: -1.3px; font-weight: 600; }
+.formHeader p { font-size: 16px; line-height: 1.65; color: hsl(var(--foreground) / .75); margin-top: 12px; }
+.formCard :global(.text-sm) { font-size: 16px; }
+.formCard :global(.text-xs) { font-size: 14px; line-height: 1.6; }
+.formCard :global(.text-muted-foreground) { color: hsl(var(--foreground) / .75); }
+.formCard :global(.text-primary) { color: hsl(var(--foreground)); }
+.formCard :global(.bg-primary) { color: white; }
+.formCard nav a, .formCard button, .formCard input { min-height: 48px; }
+.formCard input { background: hsl(var(--background) / .6); }
+.formCard input::placeholder { color: hsl(var(--foreground) / .6); font-size: 14px; }
+.formCard section > h2 { line-height: 1.3; letter-spacing: -.4px; }
+.formCard section > a { min-height: 48px; }
+.page a:focus-visible, .page button:focus-visible { outline: 3px solid hsl(var(--foreground)); outline-offset: 4px; }
+
+.homeLink { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid hsl(var(--border)); border-radius: 100px; font-size: 14px; background: hsl(var(--card) / .85); }
+.homeLink:hover { background: hsl(var(--card)); border-color: hsl(var(--primary) / .5); }
+.story { position: absolute; left: 18px; bottom: 80px; width: min(23vw, 300px); opacity: .55; pointer-events: none; }
+.illustration { height: 280px; margin-top: 0; }
+.page::after { content: ''; position: absolute; right: -110px; top: 24%; width: 330px; height: 330px; border: 50px solid hsl(var(--primary) / .045); border-radius: 50%; pointer-events: none; z-index: -1; }
+@media (max-width: 1100px) { .story { display: none; } }
+@media (max-width: 860px) { .page { padding-inline: 24px; padding-bottom: 40px; } .layout { min-height: calc(100svh - 128px); } .formCard { max-width: 500px; } }
+@media (max-width: 480px) { .page { padding-inline: 16px; padding-bottom: 28px; } .topbar { min-height: 80px; gap: 12px; } .brand { font-size: 23px; } .homeLink { font-size: 13px; padding-inline: 12px; white-space: nowrap; } .layout { min-height: calc(100svh - 108px); padding-block: 18px; } .formCard { padding: 28px 20px; border-radius: 22px; } .formHeader h1 { font-size: 29px; } .formCard nav a { gap: 6px; font-size: 15px; } .formCard section > a { gap: 8px; } }
+@media (max-width: 360px) { .formCard nav a { font-size: 14px; } .formCard nav svg { display: none; } .brand { font-size: 21px; gap: 8px; } .brandIcon { width: 32px; height: 36px; } .homeLink { padding-inline: 10px; } }
+
+@media (max-width: 600px) {
+  .formCard input:not([type='checkbox']):not([type='radio']), .formCard select { font-size: 16px; }
+  .formCard input[type='checkbox'], .formCard input[type='radio'] { min-height: 20px; width: 20px; height: 20px; flex-shrink: 0; }
+  .formCard label:has(input[type='checkbox'], input[type='radio']) { min-height: 44px; align-items: center; }
+  .formCard section > a { text-align: center; line-height: 1.4; padding-block: 14px; }
+  .formCard { min-width: 0; }
+}

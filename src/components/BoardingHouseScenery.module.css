@@ -1,0 +1,36 @@
+.scenery { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.scenery svg { display: block; width: 100%; height: 100%; }
+.sunHalo { fill: hsl(var(--primary) / .07); }
+.sunCore { fill: hsl(var(--primary) / .2); }
+.sunRays { stroke: hsl(var(--primary) / .35); stroke-width: 1.5; stroke-linecap: round; }
+.cloudFill { fill: hsl(var(--background) / .85); }
+.cloudLine { stroke: hsl(var(--background) / .75); stroke-width: 2; stroke-linecap: round; }
+.ground { stroke: hsl(var(--foreground) / .12); stroke-width: 1.5; }
+.stem { stroke: hsl(var(--foreground) / .32); stroke-width: 1.5; stroke-linecap: round; }
+.leaf { fill: hsl(var(--muted-foreground) / .19); }
+.pot { fill: hsl(var(--primary) / .25); stroke: hsl(var(--primary) / .25); }
+.birdLine { stroke: hsl(var(--foreground) / .28); stroke-width: 1.5; stroke-linecap: round; }
+.sun { transform-origin: 414px 117px; }
+.plantLeft { transform-origin: 35px 405px; }
+.plantRight { transform-origin: 460px 421px; }
+/* Slow decorative motion pauses offscreen, in background tabs, and on request. */
+@media (prefers-reduced-motion: no-preference) {
+  .scenery[data-arrived='true'] .cloudNear { animation: driftNear var(--cloud-duration, 4.8s) ease-in-out var(--scene-repeats, 1) alternate both; }
+  .scenery[data-arrived='true'] .cloudFar { animation: driftFar var(--cloud-duration, 4.8s) ease-in-out var(--scene-repeats, 1) alternate both; }
+  .scenery[data-arrived='true'] .sun { animation: sunshine 4s ease-in-out var(--scene-repeats, 1) alternate both; }
+  .scenery[data-arrived='true'] .plantLeft { animation: swayLeft 2.3s ease-in-out var(--scene-repeats, 1); }
+  .scenery[data-arrived='true'] .plantRight { animation: swayRight 2.4s ease-in-out var(--scene-repeats, 1); }
+  .scenery[data-arrived='true'] .birds { animation: glide var(--cloud-duration, 4.8s) ease-in-out var(--scene-repeats, 1) alternate both; }
+}
+@keyframes driftNear { from { transform: translateX(-18px); } to { transform: translateX(8px); } }
+@keyframes driftFar { from { transform: translateX(16px); } to { transform: translateX(-6px); } }
+@keyframes sunshine { from { opacity: .6; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes swayLeft { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-3deg); } }
+@keyframes swayRight { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(3deg); } }
+@keyframes glide { from { transform: translate(-12px, 4px); } to { transform: translate(7px, -3px); } }
+
+.scenery[data-paused='true'] * { animation-play-state: paused !important; }
+.motionToggle { position: absolute; top: 12px; right: 12px; z-index: 5; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid hsl(var(--foreground) / .2); border-radius: 50%; color: hsl(var(--foreground)); background: hsl(var(--background) / .92); }
+.motionToggle:hover { background: hsl(var(--card)); }
+.motionToggle:focus-visible { outline: 3px solid hsl(var(--foreground)); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .motionToggle { display: none; } }

@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* AbangTa warm neutral palette */
+    --background: 36 33% 96%;        /* warm beige #F5F0EB */
+    --foreground: 20 14% 15%;        /* deep warm charcoal */
+    --card: 0 0% 100%;               /* white cards */
+    --card-foreground: 20 14% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14% 15%;
+    --primary: 24 80% 50%;           /* warm orange-amber #E07020 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 20% 90%;         /* soft tan */
+    --secondary-foreground: 20 14% 25%;
+    --muted: 36 20% 93%;
+    --muted-foreground: 20 10% 45%;
+    --accent: 36 20% 90%;
+    --accent-foreground: 20 14% 15%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 36 15% 88%;
+    --input: 36 15% 92%;
+    --ring: 24 80% 50%;
+    --radius: 1rem;                  /* generous rounding */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* AbangTa card style */
+  .card-abangta {
+    @apply bg-white rounded-2xl shadow-sm border border-border/50 p-4;
+  }
+
+  /* Pill inputs */
+  .input-pill {
+    @apply rounded-full border border-input bg-white px-4 py-2;
+  }
+
+  /* Status badges */
+  .badge-occupied {
+    @apply bg-green-100 text-green-700 border border-green-200;
+  }
+  .badge-vacant {
+    @apply bg-blue-100 text-blue-700 border border-blue-200;
+  }
+  .badge-maintenance {
+    @apply bg-orange-100 text-orange-700 border border-orange-200;
+  }
+  .badge-paid {
+    @apply bg-green-100 text-green-700 border border-green-200;
+  }
+  .badge-pending {
+    @apply bg-yellow-100 text-yellow-700 border border-yellow-200;
+  }
+  .badge-overdue {
+    @apply bg-red-100 text-red-700 border border-red-200;
+  }
+  .badge-partial {
+    @apply bg-orange-100 text-orange-700 border border-orange-200;
+  }
+  .badge-cancelled {
+    @apply bg-gray-100 text-gray-600 border border-gray-200;
+  }
+
+  /* Sticky bottom bar */
+  .sticky-bottom-bar {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 p-4 z-50;
+  }
+
+  /* Dark confirm sheet */
+  .dark-sheet {
+    @apply bg-gray-900 text-white rounded-t-3xl p-6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Shared mobile ergonomics; scoped to signed-in pages. */
+.app-shell { min-width: 0; }
+.app-shell :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 3px;
+}
+@media (max-width: 1023px) {
+  .app-shell { scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  .app-shell :where(input, select, textarea):not([type='checkbox']):not([type='radio']):not([type='hidden']) {
+    font-size: 16px;
+    min-height: 48px;
+    max-width: 100%;
+  }
+  .app-shell :where(button, a.rounded-full, a.rounded-xl, a.rounded-2xl) { min-height: 44px; }
+  .app-shell :where(input[type='checkbox'], input[type='radio']) { width: 20px; height: 20px; flex-shrink: 0; }
+  .app-shell label:has(input[type='checkbox'], input[type='radio']) { min-height: 44px; align-items: center; }
+  .app-shell :where(h1, h2, h3, p, dd) { overflow-wrap: anywhere; }
+  .app-shell :where(.grid > *, form, main) { min-width: 0; }
+  .app-shell :where(input, select, textarea, button) { scroll-margin-block: 6rem; }
+}
+@media (max-width: 1023px) {
+  .ishi-mobile-panel button { min-width: 44px; min-height: 44px; }
+  .ishi-mobile-panel :where(input, select, textarea) { font-size: 16px; min-height: 44px; }
+}
+
+/* Keep page scrolling available without the decorative right-hand scrollbar. */
+html, body { scrollbar-width: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+
+/* App typography: body, supporting detail, section heading, page heading. */
+.app-shell { font-size: 16px; line-height: 1.6; --muted-foreground: 20 10% 39%; }
+.app-shell .text-sm { font-size: 1rem; line-height: 1.6; }
+.app-shell .text-xs { font-size: .875rem; line-height: 1.5; }
+.app-shell h1 { font-size: clamp(1.75rem, 2.4vw, 2rem); line-height: 1.2; letter-spacing: -.035em; }
+.app-shell h2 { font-size: 1.125rem; line-height: 1.4; letter-spacing: -.015em; }
+.app-shell h3 { line-height: 1.4; }
+.app-shell :where(input, select, textarea) { font-size: 1rem; line-height: 1.5; }
+.app-shell :where(.card-abangta, article) { min-width: 0; }
+.app-shell :where(.font-semibold, .font-bold) { font-variant-numeric: tabular-nums; }
+.app-shell nav a { line-height: 1.35; }
+.app-shell nav[aria-label='Mobile navigation'] span { font-size: .75rem; }
+.app-shell nav[aria-label='Mobile tenant navigation'] span { font-size: .6875rem; }
+.app-shell nav[aria-label='Property sections'] a { font-size: .875rem; }
+@media (min-width: 1024px) {
+  .app-shell main > .flex-1 > :where(div, main) { padding-top: 32px; padding-bottom: 40px; }
+}
+.ishi-mobile-panel { font-size: 1rem; line-height: 1.6; }
+.ishi-mobile-panel .text-sm { font-size: .9375rem; line-height: 1.6; }
+.ishi-mobile-panel .text-xs { font-size: .8125rem; line-height: 1.5; }
+@media (max-width: 639px) {
+  .app-shell nav[aria-label='Property sections'] a { font-size: .8125rem; white-space: normal; text-align: center; padding-inline: 4px; }
+}
+
+@media (max-width: 767px) {
+  html, body { width: 100%; max-width: 100%; overflow-x: clip; scrollbar-gutter: auto; }
+}

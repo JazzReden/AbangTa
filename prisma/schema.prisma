@@ -1,0 +1,800 @@
+// AbangTa 1.0 — Prisma Schema
+// MySQL 8+ | Prisma ORM
+// All monetary values use DECIMAL(10,2) — never FLOAT/DOUBLE
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  LANDLORD
+  TENANT
+}
+
+enum RoomStatus {
+  VACANT
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum RentalMode {
+  LEGACY_SHARED
+  WHOLE_ROOM
+  PER_BED
+}
+
+enum TenancyStatus {
+  PENDING  // Invited, not yet activated
+  ACTIVE
+  ENDED
+}
+
+enum BillingMethod {
+  INCLUDED   // Utility cost is included in rent — NO separate bill item generated
+  FIXED_RATE // Flat monthly charge
+  METERED    // Based on meter readings
+}
+
+enum UtilityType {
+  WATER
+  ELECTRICITY
+}
+
+enum SplitMethod {
+  EQUAL_SPLIT // Total cost ÷ occupied rooms
+  PER_ROOM    // Each room has its own meter
+}
+
+enum BillStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum BillItemType {
+  RENT
+  WATER
+  ELECTRICITY
+  WIFI
+  PARKING
+  OTHER
+}
+
+enum ChargeTreatment {
+  ADDITIONAL
+  INCLUDED
+  FREE
+}
+
+enum PropertyChargeType {
+  WIFI
+  PARKING
+}
+
+enum TenantParkingMode {
+  USE_PROPERTY_RATE
+  FREE
+  NOT_APPLICABLE
+}
+
+enum PaymentMethod {
+  CASH
+  GCASH
+  BANK_TRANSFER
+  OTHER
+  ADVANCE
+}
+
+enum TenantFundKind {
+  DEPOSIT_RECEIVED
+  DEPOSIT_REFUNDED
+  DEPOSIT_DEDUCTED
+  ADVANCE_RECEIVED
+  ADVANCE_REFUNDED
+}
+
+enum MaintenanceCategory {
+  PLUMBING
+  ELECTRICAL
+  WATER
+  ROOM
+  OTHER
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  RENT_DUE_SOON
+  RENT_OVERDUE
+  NEW_BILL
+  PAYMENT_RECORDED
+  MAINTENANCE_STATUS_CHANGED
+  NEW_ANNOUNCEMENT
+  TENANT_INVITATION
+  PAYMENT_PROOF_SUBMITTED
+  PAYMENT_PROOF_REVIEWED
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+
+model User {
+  moneyReferences MoneyReference[]
+  roomAccessRequests RoomAccessRequest[]
+  roomJoinRequests RoomJoinRequest[]
+  googleSubject String? @unique
+  lastBillReminderAt DateTime?
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  mobileLogin  String?  @unique
+  passwordHash String
+  role         UserRole
+  name         String
+  phone        String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  landlordProfile     LandlordProfile?
+  tenantProfile       TenantProfile?
+  properties          Property[]           @relation("LandlordProperties")
+  tenancies           Tenancy[]            @relation("TenantTenancies")
+  inviteTokens        InviteToken[]
+  notifications       Notification[]
+  createdBills        Bill[]               @relation("BillCreator")
+  recordedPayments    Payment[]            @relation("PaymentRecorder")
+  createdReadings     MeterReading[]       @relation("ReadingCreator")
+  announcements       Announcement[]       @relation("AnnouncementCreator")
+  maintenanceRequests MaintenanceRequest[] @relation("TenantRequests")
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model LandlordProfile {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  businessName    String?
+  bio             String? @db.Text
+  gcashName       String?
+  gcashNumber     String?
+  bankName        String?
+  bankAccountName String?
+  bankAccountNumber String?
+  taxIdNumber     String?
+  officeAddress   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_profiles")
+}
+
+model TenantProfile {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  emergencyContact String?
+  emergencyPhone   String?
+  governmentIdType String?
+  governmentIdNum  String?
+  occupation       String?
+  companyOrSchool  String?
+  permanentAddress String?
+  notes            String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_profiles")
+}
+
+// ─────────────────────────────────────────────
+// PROPERTIES
+// ─────────────────────────────────────────────
+
+model Property {
+  id           String    @id @default(cuid())
+  landlordId   String
+  name         String
+  address      String
+  description  String?   @db.Text
+  contactPhone String?
+  contactEmail String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  landlord            User                 @relation("LandlordProperties", fields: [landlordId], references: [id], onDelete: Restrict)
+  rooms               Room[]
+  tenancies           Tenancy[]
+  utilityConfigs      UtilityConfig[]
+  billingCharges      PropertyBillingCharge[]
+  meterReadings       MeterReading[]
+  maintenanceRequests MaintenanceRequest[]
+  announcements       Announcement[]
+  photos              PropertyPhoto[]
+  bills               Bill[]
+
+  @@index([landlordId])
+  @@index([archivedAt])
+  @@map("properties")
+}
+
+model PropertyBillingCharge {
+  id          String             @id @default(cuid())
+  propertyId  String
+  itemType    PropertyChargeType
+  treatment   ChargeTreatment
+  amount      Decimal            @db.Decimal(10, 2)
+  updatedAt   DateTime           @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, itemType])
+  @@map("property_billing_charges")
+}
+
+model PropertyPhoto {
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  caption    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_photos")
+}
+
+// ─────────────────────────────────────────────
+// ROOMS
+// ─────────────────────────────────────────────
+
+model Room {
+  accessRequests RoomAccessRequest[]
+  id          String     @id @default(cuid())
+  propertyId  String
+  roomNumber  String
+  description String?    @db.Text
+  capacity    Int        @default(1)
+  rentalMode  RentalMode @default(LEGACY_SHARED)
+  monthlyRent Decimal    @db.Decimal(10, 2)
+  status      RoomStatus @default(VACANT)
+  archivedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  tenancies           Tenancy[]
+  beds                Bed[]
+  meterReadings       MeterReading[]
+  photos              RoomPhoto[]
+  maintenanceRequests MaintenanceRequest[]
+
+  // Room numbers unique within a property
+  @@unique([propertyId, roomNumber])
+  @@index([propertyId])
+  @@index([status])
+  @@map("rooms")
+}
+
+model Bed {
+  id          String @id @default(cuid())
+  roomId      String
+  label       String @db.VarChar(40)
+  monthlyRent Decimal @db.Decimal(10, 2)
+  status      RoomStatus @default(VACANT)
+  archivedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  room        Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenancies   Tenancy[]
+  @@unique([roomId, label])
+  @@map("beds")
+}
+
+model RoomPhoto {
+  id        String   @id @default(cuid())
+  roomId    String
+  url       String
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@map("room_photos")
+}
+
+// ─────────────────────────────────────────────
+// TENANCY / LEASE MANAGEMENT
+// ─────────────────────────────────────────────
+
+model Tenancy {
+  fundEntries TenantFundEntry[]
+  utilityShares UtilityShare[]
+  id              String        @id @default(cuid())
+  tenantId        String
+  roomId          String
+  bedId           String?
+  activeBedKey    String? @unique
+  cancelledAt    DateTime?
+  propertyId      String
+  startDate       DateTime
+  endDate         DateTime?
+  monthlyRent     Decimal       @db.Decimal(10, 2)
+  securityDeposit Decimal?      @db.Decimal(10, 2)
+  parkingMode     TenantParkingMode @default(NOT_APPLICABLE)
+  status          TenancyStatus @default(PENDING)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  tenant              User                 @relation("TenantTenancies", fields: [tenantId], references: [id], onDelete: Restrict)
+  room                Room                 @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  bed                 Bed?                 @relation(fields: [bedId], references: [id], onDelete: Restrict)
+  property            Property             @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  inviteToken         InviteToken?
+  bills               Bill[]
+  payments            Payment[]
+  maintenanceRequests MaintenanceRequest[]
+
+  @@index([tenantId])
+  @@index([roomId])
+  @@index([bedId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([tenantId, status])
+  @@map("tenancies")
+}
+
+model InviteToken {
+  codeHash String? @unique
+  roomJoinRequests RoomJoinRequest[]
+  id        String    @id @default(cuid())
+  token     String    @unique @default(cuid())
+  tenancyId String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("invite_tokens")
+}
+
+// ─────────────────────────────────────────────
+// UTILITY CONFIGURATION
+// ─────────────────────────────────────────────
+
+model UtilityConfig {
+  allocations UtilityAllocation[]
+  id            String        @id @default(cuid())
+  propertyId    String
+  utilityType   UtilityType
+  billingMethod BillingMethod
+  fixedAmount   Decimal?      @db.Decimal(10, 2)
+  ratePerUnit   Decimal?      @db.Decimal(10, 4)
+  unit          String?
+  splitMethod   SplitMethod   @default(EQUAL_SPLIT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  property      Property       @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  meterReadings MeterReading[]
+
+  @@unique([propertyId, utilityType])
+  @@index([propertyId])
+  @@map("utility_configs")
+}
+
+// ─────────────────────────────────────────────
+// METER READINGS
+// ─────────────────────────────────────────────
+
+model MeterReading {
+  id                 String   @id @default(cuid())
+  utilityConfigId    String
+  propertyId         String
+  roomId             String?
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  previousReading    Decimal  @db.Decimal(10, 3)
+  currentReading     Decimal  @db.Decimal(10, 3)
+  consumption        Decimal  @db.Decimal(10, 3)
+  rateAtTime         Decimal  @db.Decimal(10, 4)
+  chargeAmount       Decimal  @db.Decimal(10, 2)
+  readingDate        DateTime
+  isMeterReset       Boolean  @default(false)
+  notes              String?
+  createdById        String
+  createdAt          DateTime @default(now())
+
+  utilityConfig UtilityConfig @relation(fields: [utilityConfigId], references: [id], onDelete: Restrict)
+  property      Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  room          Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  createdBy     User          @relation("ReadingCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  billItems     BillItem[]
+
+  @@index([utilityConfigId])
+  @@index([propertyId])
+  @@index([roomId])
+  @@index([billingPeriodStart, billingPeriodEnd])
+  @@map("meter_readings")
+}
+
+// ─────────────────────────────────────────────
+// BILLS
+// ─────────────────────────────────────────────
+
+model Bill {
+  id                 String     @id @default(cuid())
+  tenancyId          String
+  propertyId         String
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate            DateTime
+  totalAmount        Decimal    @db.Decimal(10, 2)
+  amountPaid         Decimal    @default(0) @db.Decimal(10, 2)
+  status             BillStatus @default(PENDING)
+  notes              String?    @db.Text
+  createdById        String
+  cancelledAt        DateTime?
+  lastReminderAt     DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  tenancy   Tenancy    @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  property  Property   @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  createdBy User       @relation("BillCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  items     BillItem[]
+  payments  Payment[]
+  paymentProofs PaymentProof[]
+  assistantReminders AssistantReminder[]
+
+  @@index([tenancyId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([billingPeriodStart, billingPeriodEnd])
+  @@index([propertyId, cancelledAt, status, dueDate])
+  @@map("bills")
+}
+
+model BillItem {
+  id             String       @id @default(cuid())
+  billId         String
+  itemType       BillItemType
+  chargeTreatment ChargeTreatment?
+  description    String
+  billingMethod  BillingMethod
+  amount         Decimal      @db.Decimal(10, 2)
+  rateSnapshot   Decimal?     @db.Decimal(10, 4)
+  meterReadingId String?
+  isIncluded     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  bill         Bill          @relation(fields: [billId], references: [id], onDelete: Cascade)
+  meterReading MeterReading? @relation(fields: [meterReadingId], references: [id], onDelete: SetNull)
+
+  @@index([billId])
+  @@index([itemType])
+  @@map("bill_items")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  billId          String
+  tenancyId       String
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentDate     DateTime
+  paymentMethod   PaymentMethod
+  referenceNumber String?
+  confirmedAt     DateTime?
+  referenceKey    String?       @unique @db.Char(64)
+  idempotencyKey  String?       @unique @db.VarChar(36)
+  notes           String?       @db.Text
+  recordedById    String
+  voidedAt        DateTime?
+  voidReason      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  bill       Bill    @relation(fields: [billId], references: [id], onDelete: Restrict)
+  tenancy    Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  recordedBy User    @relation("PaymentRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  receipt    PaymentReceipt?
+  proof      PaymentProof?
+
+  @@index([billId])
+  @@index([tenancyId])
+  @@index([paymentDate])
+  @@index([voidedAt])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// MAINTENANCE REQUESTS
+// ─────────────────────────────────────────────
+
+model PaymentReceipt {
+  id        String   @id @default(cuid())
+  paymentId String   @unique
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_receipts")
+}
+
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PaymentProof {
+  id              String @id @default(cuid())
+  billId          String
+  amount          Decimal @db.Decimal(10, 2)
+  paymentDate     DateTime
+  referenceNumber String @db.VarChar(100)
+  image           Bytes @db.MediumBlob
+  imageHash       String @db.Char(64)
+  idempotencyKey  String @unique @db.VarChar(36)
+  pendingBillId   String? @unique
+  status          PaymentProofStatus @default(PENDING)
+  paymentId       String? @unique
+  reviewedById    String?
+  reviewedAt      DateTime?
+  rejectionReason String? @db.VarChar(500)
+  createdAt       DateTime @default(now())
+
+  bill    Bill @relation(fields: [billId], references: [id], onDelete: Restrict)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([billId, createdAt])
+  @@index([status, createdAt, id])
+  @@map("payment_proofs")
+}
+
+model TenantFundEntry {
+  id              String @id @default(cuid())
+  tenancyId       String
+  kind            TenantFundKind
+  amount          Decimal @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod?
+  paymentDate     DateTime
+  referenceNumber String? @db.VarChar(100)
+  idempotencyKey  String @unique @db.VarChar(36)
+  notes           String? @db.VarChar(500)
+  recordedById    String
+  confirmedAt     DateTime @default(now())
+  voidedAt        DateTime?
+  voidReason      String? @db.VarChar(500)
+  createdAt       DateTime @default(now())
+  tenancy         Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  @@index([tenancyId, kind, voidedAt])
+  @@index([paymentDate])
+  @@map("tenant_fund_entries")
+}
+
+// One GCash transfer must not be recorded in both a bill and a funds ledger.
+model MoneyReference {
+  key     String @id @db.Char(64)
+  ownerId String
+  owner   User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  @@index([ownerId])
+  @@map("money_references")
+}
+
+model MaintenanceRequest {
+  id          String              @id @default(cuid())
+  tenancyId   String
+  propertyId  String
+  roomId      String
+  title       String
+  description String              @db.Text
+  category    MaintenanceCategory
+  priority    MaintenancePriority
+  status      MaintenanceStatus   @default(SUBMITTED)
+  statusNotes String?             @db.Text
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenancy   Tenancy  @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  createdBy User     @relation("TenantRequests", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([tenancyId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([priority])
+  @@index([propertyId, status, priority, createdAt])
+  @@index([createdById, createdAt])
+  @@map("maintenance_requests")
+}
+
+// ─────────────────────────────────────────────
+// ANNOUNCEMENTS
+// ─────────────────────────────────────────────
+
+model Announcement {
+  id          String    @id @default(cuid())
+  propertyId  String
+  title       String
+  message     String    @db.Text
+  createdById String
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([propertyId])
+  @@index([expiresAt])
+  @@map("announcements")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id                String           @id @default(cuid())
+  userId            String
+  type              NotificationType
+  title             String
+  message           String           @db.Text
+  relatedEntityType String?
+  relatedEntityId   String?
+  isRead            Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model UtilityAllocation {
+  id String @id @default(cuid())
+  configId String
+  roomKey String @default("")
+  periodStart DateTime
+  periodEnd DateTime
+  totalAmount Decimal @db.Decimal(10, 2)
+  meterReadingId String?
+  config UtilityConfig @relation(fields: [configId], references: [id], onDelete: Restrict)
+  shares UtilityShare[]
+  @@unique([configId, roomKey, periodStart, periodEnd])
+  @@map("utility_allocations")
+}
+
+model UtilityShare {
+  id String @id @default(cuid())
+  allocationId String
+  tenancyId String
+  amount Decimal @db.Decimal(10, 2)
+  allocation UtilityAllocation @relation(fields: [allocationId], references: [id], onDelete: Restrict)
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  @@unique([allocationId, tenancyId])
+  @@index([tenancyId])
+  @@map("utility_shares")
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model RoomJoinRequest {
+  id String @id @default(cuid())
+  userId String
+  inviteId String
+  status JoinRequestStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  invite InviteToken @relation(fields: [inviteId], references: [id], onDelete: Restrict)
+  @@unique([userId, inviteId])
+  @@index([inviteId, status])
+  @@map("room_join_requests")
+}
+
+model RoomAccessRequest {
+  id String @id @default(cuid())
+  userId String
+  roomId String
+  status JoinRequestStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  @@unique([userId, roomId])
+  @@index([roomId, status])
+  @@map("room_access_requests")
+}
+
+model RateLimitBucket {
+  key String @id @db.Char(64)
+  count Int @default(0) @db.UnsignedInt
+  resetAt DateTime @db.DateTime(3)
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}
+
+enum AssistantReminderStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  SKIPPED
+  CANCELLED
+  FAILED
+}
+
+model AssistantReminder {
+  id String @id @default(cuid())
+  landlordId String
+  billId String
+  language String @db.VarChar(3)
+  template String @db.VarChar(1000)
+  previewHash String @db.Char(64)
+  status AssistantReminderStatus @default(DRAFT)
+  scheduledAt DateTime?
+  attemptedAt DateTime?
+  finishedAt DateTime?
+  outcome String? @db.VarChar(250)
+  deliveredMessage String? @db.VarChar(1500)
+  createdAt DateTime @default(now())
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  @@index([status, scheduledAt])
+  @@index([landlordId, createdAt])
+  @@map("assistant_reminders")
+}
