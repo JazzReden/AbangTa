@@ -4,7 +4,6 @@ import { Building2, LogOut } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/session';
 import { signOut } from '@/lib/auth';
 import { TenantNavigation } from '@/components/tenant/TenantNavigation';
-import { SiteFooter } from '@/components/SiteFooter';
 import { TenantAssistant } from '@/components/assistant/TenantAssistant';
 
 export default async function TenantLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +24,7 @@ export default async function TenantLayout({ children }: { children: React.React
         <form action={signOutAction}><button aria-label="Sign out" title="Sign out" className="flex h-11 w-11 items-center justify-center rounded-xl border bg-white text-muted-foreground"><LogOut size={17} /></button></form>
       </div>
     </header>
-    <div className="flex flex-1 flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"><div className="flex-1">{children}</div><SiteFooter /></div>
+    <div className="flex flex-1 flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"><div className="flex-1">{children}</div></div>
     <TenantNavigation mobile />
     <TenantAssistant key={user.id} userId={user.id} />
   </div>;

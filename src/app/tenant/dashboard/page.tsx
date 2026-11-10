@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import Link from 'next/link';
 import { Bell, Building2, CalendarDays, DoorOpen, ReceiptText, Wrench } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/session';
@@ -27,12 +28,7 @@ export default async function TenantDashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl p-4 pb-28 md:p-6">
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">
-          Welcome home
-        </p>
-        <h1 className="text-2xl font-bold">{user.name}</h1>
-      </div>
+      <PageHeader eyebrow="Welcome home" title={user.name} description={`${property.name} · Room ${room.roomNumber}`} />
 
       {reminders.length > 0 && <section className="mb-5 space-y-3 border-y border-border py-4">
         <h2 className="flex items-center gap-2 font-semibold"><Bell size={17} className="text-primary" />Bill reminders</h2>

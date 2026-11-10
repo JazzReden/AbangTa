@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import Link from 'next/link';
 import { Building2, DoorOpen, Plus, Users, Wrench } from 'lucide-react';
 import { requireLandlord } from '@/lib/auth/session';
@@ -13,21 +14,8 @@ export default async function PropertiesPage() {
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
-            Portfolio
-          </p>
-          <h1 className="text-2xl font-bold">Properties</h1>
-        </div>
-        <Link
-          href="/landlord/properties/new"
-          className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-        >
-          <Plus size={17} />
-          Add
-        </Link>
-      </div>
+      <PageHeader eyebrow="Your portfolio" title="Properties" description="Rooms, residents, and property activity."
+        action={<Link href="/landlord/properties/new" className="app-primary-action"><Plus size={18} />Add property</Link>} />
 
       {properties.length === 0 ? (
         <div className="card-abangta rounded-3xl p-8 text-center">
@@ -64,7 +52,7 @@ export default async function PropertiesPage() {
               <Link
                 key={property.id}
                 href={`/landlord/properties/${property.id}`}
-                className="card-abangta block rounded-3xl p-5 transition hover:-translate-y-0.5 hover:shadow-md"
+                className="card-abangta app-property-card block rounded-3xl p-5"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
@@ -122,7 +110,7 @@ function MiniStat({
     <div className="rounded-2xl bg-background px-3 py-2">
       <div className="flex items-center justify-center gap-1 text-muted-foreground">
         {icon}
-        <span className="text-[11px] font-medium">{label}</span>
+        <span className="text-xs font-medium">{label}</span>
       </div>
       <p className="mt-1 text-lg font-bold">{value}</p>
     </div>

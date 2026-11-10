@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Bell } from 'lucide-react';
 import Link from 'next/link';
 import { requireLandlord } from '@/lib/auth/session';
@@ -25,10 +26,7 @@ export default async function LandlordNotificationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">Updates</p>
-        <h1 className="text-2xl font-bold">Notifications</h1>
-      </div>
+      <PageHeader eyebrow="Activity" title="Notifications" description="The latest updates across your properties." />
 
       {notifications.length === 0 ? (
         <div className="card-abangta rounded-3xl p-8 text-center">

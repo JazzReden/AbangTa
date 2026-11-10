@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { requireLandlord } from '@/lib/auth/session';
 import { PropertyService } from '@/services/properties/property.service';
 import { formatPeso } from '@/lib/utils/currency';
@@ -35,18 +36,11 @@ export default async function LandlordDashboardPage({ searchParams }: { searchPa
       <DashboardProofRefresh revision={pendingProofRevision(user.id, pendingProofs)} page={pendingProofs.page} />
       <AssistantRefreshSignal revision={JSON.stringify([stats.collectedThisMonth, stats.outstandingBalance, stats.openMaintenanceRequests, pendingProofs.total])} />
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          {greeting}, {firstName} 👋
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Your property overview.
-        </p>
-      </div>
+      <PageHeader eyebrow="Overview" title={`${greeting}, ${firstName}`} description="Your properties at a glance." />
 
       {/* Financial summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-primary rounded-2xl p-5 text-primary-foreground">
+        <div className="app-rent-summary bg-primary rounded-2xl p-5 text-primary-foreground">
           <p className="text-xs font-medium uppercase tracking-wider opacity-80 mb-1">
             Expected Rent
           </p>

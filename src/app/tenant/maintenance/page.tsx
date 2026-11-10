@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { requireTenant } from '@/lib/auth/session';
 import { MaintenanceService } from '@/services/maintenance/maintenance.service';
 import { MaintenanceStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
@@ -23,14 +24,11 @@ export default async function TenantMaintenancePage() {
 
   return (
     <main className="mx-auto max-w-3xl p-4 pb-24 md:p-6">
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">Support</p>
-        <h1 className="text-2xl font-bold">Maintenance Requests</h1>
-      </div>
+      <PageHeader eyebrow="Your home" title="Maintenance" description="Report a repair and follow its progress." />
 
       {/* Submit form */}
       <div className="card-abangta rounded-3xl p-5 mb-6">
-        <h2 className="font-semibold mb-4">Submit a Request</h2>
+        <h2 className="font-semibold mb-4">New request</h2>
         {tenancy ? <TenantMaintenanceForm /> : <Link href="/tenant/join" className="inline-flex items-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white">Join a room to submit a request</Link>}
       </div>
 
@@ -43,7 +41,7 @@ export default async function TenantMaintenancePage() {
         <div className="card-abangta rounded-3xl p-8 text-center">
           <Wrench size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            You haven&apos;t submitted any maintenance requests yet.
+            No maintenance requests yet.
           </p>
         </div>
       ) : (

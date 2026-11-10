@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { ReceiptText } from 'lucide-react';
 import Link from 'next/link';
 import { ReceiptDownload } from '@/components/billing/ReceiptDownload';
@@ -42,11 +43,8 @@ export default async function TenantBillsPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-4 pb-24 md:p-6">
-      <div className="mb-6">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">Billing</p>
-        <h1 className="text-2xl font-bold">My Bills</h1>
-        <Link href="/tenant/payments" className="mt-2 inline-flex text-sm font-medium text-primary hover:underline">Payment history &amp; balances</Link>
-      </div>
+      <PageHeader eyebrow="Billing" title="My bills" description="Your charges, payments, and remaining balance."
+        action={<Link href="/tenant/payments" className="app-secondary-action">Payment history</Link>} />
 
       {bills.length === 0 ? (
         <div className="card-abangta rounded-3xl p-8 text-center">
