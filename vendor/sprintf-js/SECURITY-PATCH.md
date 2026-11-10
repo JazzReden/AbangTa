@@ -15,3 +15,5 @@ Replace this backport when an official patched upstream release becomes availabl
 
 Upstream: https://github.com/alexei/sprintf.js
 Advisory: https://github.com/advisories/GHSA-hp3w-g68c-fv3c
+
+Repository cleanup retains the patched Node entry point and upstream tests. Unused Angular adapters, browser bundles, demo files, and Bower/Grunt tooling are omitted; AbangTa does not build or serve these artifacts.
