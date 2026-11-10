@@ -34,7 +34,7 @@ jobs:
       ABANGTA_DB_TESTS: '1'
       BILL_REMINDERS_AUTOMATIC: '0'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
