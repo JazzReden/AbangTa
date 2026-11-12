@@ -9,7 +9,7 @@ jest.mock('../components/assistant/NadineAssistant.module.css', () => ({ launche
 test('Nadine uses the supplied mascot and a compact side launcher above mobile navigation', () => {
   const html = renderToStaticMarkup(<NadineAssistant properties={[]} contextKey="test" />);
   expect(html).toContain('Open Ishi'); expect(html).not.toContain('Open Nadine');
-  expect(html).toContain('aria-expanded="false"'); expect(html).toContain('right-3');
+  expect(html).toContain('aria-expanded="false"'); expect(html).toContain('left-3');
   expect(html).toContain('safe-area-inset-bottom');
   expect(html).toContain('h-20 w-14'); expect(html).toContain('pointer-events-none');
   expect(html).not.toContain('object-cover'); expect(html).not.toContain('rounded-full border');
@@ -41,6 +41,6 @@ test('tenant launcher uses the same mascot and avoids the landlord sidebar offse
   expect(html).toContain('Open Ishi'); expect(html).not.toContain('lg:left-[17rem]');
   expect(html).not.toContain('Reminder deliveries'); expect(html).not.toContain('Property scope');
   const wrapper = readFileSync(join(process.cwd(), 'src/components/assistant/TenantAssistant.tsx'), 'utf8');
-  expect(wrapper).toContain('abangta:ishi-position:tenant:v1:${userId}');
+  expect(wrapper).toContain('abangta:ishi-position:tenant:v2:${userId}');
   const layout = readFileSync(join(process.cwd(), 'src/app/tenant/layout.tsx'), 'utf8'); expect(layout).toContain('<TenantAssistant');
 });

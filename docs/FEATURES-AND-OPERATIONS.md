@@ -1,10 +1,11 @@
-# AbangTa
-Your Boarding House, All in One Place.
+# Features and operations
+
+[Documentation index](README.md) · [Current scope and limitations](PROJECT-STATUS.md)
 
 AbangTa manages Philippine boarding houses: properties, rooms, tenancy history, rent, independent water/electricity configuration, payment recording, maintenance and announcements. Accounts can sign in with email/mobile and password, or Google.
 
 ## Run locally
-Requires Node.js 20.9+, MySQL 8+ (the local database is configured in your environment files).
+Use Node.js 22 LTS and MySQL 8. Follow the [local setup](../README.md#local-setup) before running these commands. The supported Node range is recorded in `package.json`.
 
 ```bash
 npm ci
@@ -101,7 +102,7 @@ npm run build
 npm audit --omit=dev
 ```
 
-Database tests create uniquely named temporary fixtures and remove only those fixtures. They cover simultaneous bill generation/payment recording, authorization, electricity meters, saved shared allocations, invitation expiry and replay. Default tests skip database integration unless ABANGTA_DB_TESTS=1 is set.
+Run database tests only against a dedicated test database with migrations applied and `DATABASE_URL` explicitly set. Database tests create uniquely named temporary fixtures and remove those fixtures. They cover simultaneous bill generation/payment recording, authorization, electricity meters, saved shared allocations, invitation expiry and replay. Default tests skip database integration unless ABANGTA_DB_TESTS=1 is set.
 
 ## Demo seed
 Optional; only works on an empty development database. The seed refuses production or nonempty databases and never clears existing records.
@@ -114,7 +115,7 @@ Seed data demonstrates included, fixed and metered scenarios, partial/full payme
 ## Security and deployment
 Server actions and services verify current account roles and record ownership. Google identities must have verified emails. Auth.js handles OAuth state/PKCE, secure session cookies and authentication CSRF protection. Database role checks run on protected operations; middleware does not grant access based solely on a JWT role.
 
-Response headers block framing, prevent MIME sniffing, restrict base/object embedding, suppress invitation-token referrers and enable HSTS in production. Remote optimized images are restricted to Google profile images. Database errors are not returned verbatim from forms.
+Production response headers block framing, prevent MIME sniffing, restrict base/object embedding, suppress invitation-token referrers and enable HSTS. Direct loopback development requests allow editor iframe previews; non-loopback and proxied development requests retain framing restrictions. Remote optimized images are restricted to Google profile images. Database errors are not returned verbatim from forms.
 
 ### Shared rate limiting
 Authentication, registration, invitation creation/acceptance, room previews/joins, News writes and maintenance operations use shared `rate_limit_buckets` in MySQL. Run `npm run prisma:migrate:prod` before starting the updated app. No Redis service, API token or additional environment variable is required. Every app instance must connect to the SAME writable database, not an asynchronous read replica.
@@ -133,15 +134,15 @@ Run both `npm audit` (all dependencies) and `npm audit --omit=dev` (runtime only
 Deployment: install build dependencies, generate Prisma client, deploy migrations, run the production build, then start with npm run start. Configure production OAuth origins/callbacks and environment variables. The SQL migration adds Google identity and allocation tables without resetting existing data.
 
 ## Product references
-- [Nadine assistant, AI setup and reminder scheduling](NADINE-ASSISTANT.md).
+- [Ishi assistant, AI setup and reminder scheduling](NADINE-ASSISTANT.md).
 - [Tenant GCash proof submission and landlord verification](GCASH-PAYMENT-PROOFS.md).
 - [RentRedi tenant charges and portal](https://help.rentredi.com/en/articles/3964761-how-payments-work): tenant-visible itemized charges.
 - [Avail rent ledger](https://www.avail.com/education/articles/what-is-a-rent-ledger): preserve payer, unit, date, amount, charge type and status.
 - [Auth.js Google provider](https://authjs.dev/reference/core/providers/google).
 - [OWASP HTTP headers](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html).
 
-## Latest hardening audit
-See [November 9 security and cleanup audit](../SECURITY.md) for
-transaction safety, request-scoped caching, database indexes, retained backups,
-verification results, and the pre-existing bill discrepancy requiring review.
-Run `node scripts/check-data-integrity.mjs` for a read-only bill/ledger check.
+## Maintenance checks
+
+See the [security policy](../SECURITY.md) for vulnerability reporting and the [organization report](CODEBASE-ORGANIZATION.md) for this cleanup’s verification. Historical private security audits are not part of the public documentation.
+
+Run `node scripts/check-data-integrity.mjs` for a read-only bill/ledger check. Exit code 0 means no mismatches were found, 1 means records need reconciliation, and 2 means the check could not complete. The report can contain private bill identifiers: review locally, do not publish it, and do not automatically rewrite financial history.

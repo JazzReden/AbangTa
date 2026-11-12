@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import Magnet from './react-bits/Magnet';
+import Magnet from '@/components/react-bits/Magnet';
 
 const motionQuery = '(prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)';
 function subscribeMotion(callback: () => void) {

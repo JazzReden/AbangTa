@@ -34,5 +34,5 @@ test('dashboard signals refreshes without mounting a second widget; tenant layou
   const wrapper = readFileSync(join(process.cwd(), 'src/components/assistant/LandlordAssistant.tsx'), 'utf8');
   expect(dashboard).not.toContain('<NadineAssistant'); expect(dashboard).toContain('<AssistantRefreshSignal');
   expect(tenant).not.toContain('LandlordAssistant');
-  expect(wrapper).toContain('abangta:ishi-position:v1:${userId}'); expect(wrapper).toContain('usePathname');
+  expect(wrapper).toContain('abangta:ishi-position:v2:${userId}'); expect(wrapper).toContain('usePathname');
 });

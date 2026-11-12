@@ -19,5 +19,5 @@ export function LandlordAssistant({ userId, properties }: { userId: string; prop
     window.addEventListener(refreshEvent, refresh);
     return () => window.removeEventListener(refreshEvent, refresh);
   }, []);
-  return <NadineAssistant properties={properties} contextKey={`${pathname}:${revision}`} positionKey={`abangta:ishi-position:v1:${userId}`} />;
+  return <NadineAssistant properties={properties} contextKey={`${pathname}:${revision}`} positionKey={`abangta:ishi-position:v2:${userId}`} />;
 }

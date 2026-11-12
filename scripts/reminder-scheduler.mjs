@@ -31,11 +31,12 @@ export function startReminderScheduler({
       if (!response.ok) throw new Error('Reminder job failed.');
       const result = await response.json();
       if (!Number.isInteger(result.sent) || result.sent < 0 || result.sent > 100) throw new Error('Invalid reminder job response.');
+      if (warned) logger.info(JSON.stringify({ event: 'reminders.scheduler.recovered', at: new Date().toISOString() }));
       warned = false;
       if (result.sent > 0) logger.info(`[reminders] Sent ${result.sent} in-app bill reminder(s).`);
     } catch {
       if (!stopped && !warned) {
-        logger.warn('[reminders] Server or reminder storage unavailable; automatic retry is scheduled.');
+        logger.warn(JSON.stringify({ event: 'reminders.scheduler.failed', action: 'retry', at: new Date().toISOString() }));
         warned = true;
       }
     } finally {

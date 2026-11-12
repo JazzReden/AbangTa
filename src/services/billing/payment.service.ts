@@ -94,7 +94,10 @@ export class PaymentService {
         where: { id: paymentId }, include: { bill: { include: { property: true } } },
       });
       if (!payment || payment.bill.property.landlordId !== landlordId) throw new Error('FORBIDDEN');
-      if (payment.voidedAt) throw new Error('Payment already voided');
+      if (payment.voidedAt) {
+        if (payment.voidReason === reason.trim()) return { success: true };
+        throw new Error('Payment already voided with a different reason');
+      }
       if (payment.paymentMethod === 'ADVANCE') {
         const balance = await TenantFundsService.balances(tx, payment.tenancyId);
         if (balance.advance.plus(payment.amount).gt('99999999.99')) throw new Error('Refund unused advance credit before reversing this application');
@@ -136,19 +139,26 @@ export class PaymentService {
     });
   }
 
-  static async getTenantPayments(tenantId: string) {
-    return prisma.payment.findMany({
-      where: { tenancy: { tenantId }, voidedAt: null },
-      include: {
-        bill: {
-          select: {
-            id: true,
-            billingPeriodStart: true,
-            status: true,
-          },
+  static async getTenantPayments(tenantId: string, requestedPage = 1) {
+    const pageSize = 20;
+    const safePage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const where: Prisma.PaymentWhereInput = { tenancy: { tenantId } };
+    // Keep counts and rows in the same snapshot while payments are corrected.
+    return withTransactionRetry(() => prisma.$transaction(async tx => {
+      const total = await tx.payment.count({ where });
+      const pages = Math.max(1, Math.ceil(total / pageSize));
+      const page = Math.min(safePage, pages);
+      const payments = await tx.payment.findMany({
+        where,
+        select: {
+          id: true, amount: true, paymentDate: true, paymentMethod: true,
+          confirmedAt: true, voidedAt: true, voidReason: true,
+          bill: { select: { billingPeriodStart: true, property: { select: { name: true } } } },
         },
-      },
-      orderBy: { paymentDate: 'desc' },
-    });
+        orderBy: [{ paymentDate: 'desc' }, { id: 'desc' }],
+        take: pageSize, skip: (page - 1) * pageSize,
+      });
+      return { payments, total, page, pages, pageSize };
+    }, { isolationLevel: 'RepeatableRead' }));
   }
 }

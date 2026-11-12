@@ -68,7 +68,7 @@ export default async function PropertyDetailPage({ params: paramsPromise, search
         Properties
       </Link>
 
-      <section className="mb-5 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-border/60">
+      <section className="card-abangta mb-6 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-muted-foreground">
@@ -93,7 +93,7 @@ export default async function PropertyDetailPage({ params: paramsPromise, search
 
       <PropertyNav propertyId={property.id} current="overview" />
 
-      <div className="mb-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <ValueCard label="Active monthly rent" value={formatPeso(monthlyRent)} icon={<Banknote />} />
         <UtilityCard title="Water" config={water} icon={<Droplets />} />
         <UtilityCard title="Electricity" config={electricity} icon={<Bolt />} />
@@ -113,7 +113,7 @@ export default async function PropertyDetailPage({ params: paramsPromise, search
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section>
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>

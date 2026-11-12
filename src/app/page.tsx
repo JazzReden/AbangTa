@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { ArrowDown, ArrowUpRight, BedDouble, Building2, Check, KeyRound, ReceiptText, Wrench } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth/session';
-import { BoardingHouseScenery } from '@/components/BoardingHouseScenery';
+import { BoardingHouseScenery } from '@/components/marketing/BoardingHouseScenery';
 import { SiteFooter } from '@/components/SiteFooter';
 import styles from './landing.module.css';
-import { LandingMotion, LandingMagnet } from '@/components/LandingMotion';
+import { LandingMotion, LandingMagnet } from '@/components/marketing/LandingMotion';
 
 export const metadata = {
   title: 'AbangTa — A little less work. A better place to live.',

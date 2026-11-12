@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireLandlord } from '@/lib/auth/session';
-import { actionError, checkboxField, numericField, optionalString } from '@/lib/actions/form';
+import { actionError, validationError, checkboxField, numericField, optionalString } from '@/lib/actions/form';
 import {
   generateBillSchema,
   meterReadingSchema,
@@ -55,7 +55,7 @@ export async function generateBillAction(
       sharedElectricityAmount: numericField(formData.get('sharedElectricityAmount')),
     });
     if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message ?? 'Invalid bill details' };
+      return validationError(parsed.error.issues);
     }
 
     await BillingService.generateMonthlyBill(
@@ -104,7 +104,7 @@ export async function recordPaymentAction(
       idempotencyKey: optionalString(formData.get('idempotencyKey')),
     });
     if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message ?? 'Invalid payment details' };
+      return validationError(parsed.error.issues);
     }
 
     await PaymentService.recordPayment(
@@ -119,6 +119,8 @@ export async function recordPaymentAction(
     revalidatePath(`/landlord/properties/${propertyId}/bills/${billId}`);
     revalidatePath(`/landlord/properties/${propertyId}/bills`);
     revalidatePath('/landlord/payments');
+    revalidatePath('/landlord/dashboard');
+    revalidatePath('/landlord/action-center');
     revalidatePath('/tenant', 'layout');
     return { success: 'Payment recorded.' };
   } catch (error) {
@@ -145,7 +147,7 @@ export async function createMeterReadingAction(
       notes: optionalString(formData.get('notes')),
     });
     if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message ?? 'Invalid meter reading' };
+      return validationError(parsed.error.issues);
     }
 
     await MeterReadingService.createReading(
@@ -182,8 +184,8 @@ export async function voidPaymentAction(_propertyId: string, paymentId: string, 
   try {
     const user = await requireLandlord();
     await PaymentService.voidPayment(paymentId, String(form.get('reason') ?? ''), user.id);
-    revalidatePath('/landlord');
-    revalidatePath('/tenant');
+    revalidatePath('/landlord', 'layout');
+    revalidatePath('/tenant', 'layout');
     return { success: 'Payment voided. Balance updated.' };
   } catch (error) { return actionError(error); }
 }
@@ -191,8 +193,8 @@ export async function voidPaymentAction(_propertyId: string, paymentId: string, 
 export async function cancelBillStateAction(propertyId: string, billId: string, _state: { error?: string; success?: string }, _form: FormData) {
   try {
     await cancelBillAction(propertyId, billId);
-    revalidatePath('/landlord');
-    revalidatePath('/tenant');
+    revalidatePath('/landlord', 'layout');
+    revalidatePath('/tenant', 'layout');
     return { success: 'Bill cancelled.' };
   } catch (error) { return actionError(error); }
 }

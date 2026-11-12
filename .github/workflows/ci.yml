@@ -45,6 +45,9 @@ jobs:
       - run: npm run prisma:generate
       - run: npm run prisma:migrate:prod
       - run: npm run lint
+      - run: npm run typecheck -- --incremental false
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test -- --runInBand
+      - run: npm run test:ops
       - run: npm run test:scheduler
       - run: npm run build

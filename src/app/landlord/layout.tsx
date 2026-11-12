@@ -18,7 +18,8 @@ export default async function LandlordLayout({
   const properties = await prisma.property.findMany({ where: { landlordId: user.id, landlord: { role: 'LANDLORD' }, archivedAt: null }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 100 });
 
   return (
-    <div className="app-shell min-h-screen bg-background">
+    <div className="app-shell flex min-h-dvh flex-col bg-background">
+      <a href="#workspace-content" className="app-skip-link">Skip to content</a>
       {/* Desktop sidebar */}
       <LandlordSidebar user={user} />
 
@@ -30,7 +31,7 @@ export default async function LandlordLayout({
       </header>
 
       {/* Main content */}
-      <main className="lg:ml-64 flex min-h-dvh flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <main id="workspace-content" tabIndex={-1} className="lg:ml-64 flex min-h-0 flex-1 flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <div className="flex-1">{children}</div>
       </main>
 

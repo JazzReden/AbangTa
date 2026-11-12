@@ -154,7 +154,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   border-radius: 20px;
   box-shadow: 0 2px 8px hsl(var(--foreground) / .025);
 }
-.app-page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid hsl(var(--border)); }
+.app-page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid hsl(var(--border)); }
 .app-eyebrow { font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin-bottom: 8px; }
 .app-page-header h1 { font-weight: 650; }
 .app-page-description { margin-top: 8px; color: hsl(var(--muted-foreground)); max-width: 48ch; }
@@ -170,7 +170,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .app-account-link span { display: grid; place-items: center; height: 36px; width: 36px; border-radius: 50%; background: hsl(var(--primary) / .1); color: hsl(var(--primary)); font-weight: 650; }
 @media (max-width: 1023px) { .app-mobile-header { display: flex; } }
 @media (max-width: 639px) {
-  .app-page-header { align-items: flex-start; gap: 16px; margin-bottom: 22px; padding-bottom: 20px; }
+  .app-page-header { align-items: flex-start; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; }
   .app-page-action { width: 100%; }
   .app-page-action > a { width: 100%; }
   .app-shell .app-property-card { padding: 20px; }
@@ -178,3 +178,40 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .app-shell .app-property-card { transition: none; } }
 .app-secondary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 18px; border: 1px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--card)); font-weight: 600; }
 .app-secondary-action:hover { border-color: hsl(var(--primary)); }
+
+/* App alignment: 8px spacing rhythm, shared edges, and responsive columns. */
+.app-shell { --app-page-gutter: 24px; }
+.app-shell main > .flex-1 > :where(div, main),
+.app-shell > div > .flex-1 > main { padding-inline: var(--app-page-gutter); }
+.app-property-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding: 6px; margin-bottom: 24px; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--secondary) / .45); }
+.app-property-tab { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; padding: 10px 8px; border-radius: 11px; text-align: center; color: hsl(var(--muted-foreground)); font-weight: 500; }
+.app-property-tab[aria-current='page'] { background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: 0 1px 4px hsl(var(--foreground) / .08); font-weight: 650; }
+.app-property-tab:hover { color: hsl(var(--foreground)); }
+.app-shell .app-stat-card { transition: border-color .18s; }
+.app-shell .app-stat-card:hover { border-color: hsl(var(--primary) / .5); }
+.app-dashboard-panel { display: flex; flex-direction: column; }
+.app-dashboard-panel > a:last-child { margin-top: auto; padding-top: 16px; }
+.app-shell nav[aria-label='Sidebar navigation'] a { min-height: 48px; margin-bottom: 4px; }
+.app-shell nav[aria-label='Sidebar navigation'] a[aria-current='page'] { box-shadow: inset 3px 0 hsl(var(--primary)); }
+.app-shell nav[aria-label='Sidebar navigation'] svg { flex-shrink: 0; }
+@media (min-width: 1280px) { .app-shell { --app-page-gutter: 32px; } }
+@media (max-width: 767px) {
+  .app-shell { --app-page-gutter: 16px; }
+  .app-property-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .app-shell .app-stat-card { transition: none; } }
+
+.app-skip-link {
+  @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60]
+    focus:rounded-lg focus:bg-foreground focus:px-4 focus:py-3 focus:text-background;
+}
+
+.app-billing-action {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl
+    bg-background px-4 py-2 text-sm font-semibold text-foreground hover:bg-background/90;
+}
+
+/* Comfortable editing on phones; retain the approved orange palette. */
+.app-shell :where(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) { font-size: 1rem; min-height: 44px; scroll-margin-top: 100px; }
+.app-shell :where(input, select, textarea)[aria-invalid='true'] { border-color: hsl(var(--destructive)); }
+.app-shell :where(input, select, textarea):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }

@@ -3,7 +3,9 @@ import { ReceiptText } from 'lucide-react';
 import Link from 'next/link';
 import { ReceiptDownload } from '@/components/billing/ReceiptDownload';
 import { requireTenant } from '@/lib/auth/session';
-import { BillingService } from '@/services/billing/billing.service';
+import { BillListService } from '@/services/billing/bill-list.service';
+import { ListControls, ListPagination, BILL_FILTERS } from '@/components/ui/ListControls';
+import type { ListQuery } from '@/lib/lists/query';
 import { formatPeso } from '@/lib/utils/currency';
 import { remainingBalance, billStatusFromAmounts } from '@/lib/utils/billing';
 import { BillStatusBadge } from '@/components/ui/StatusBadge';
@@ -35,23 +37,28 @@ function prettyItem(itemType: string) {
   return 'Other';
 }
 
-export default async function TenantBillsPage() {
+export default async function TenantBillsPage({ searchParams }: { searchParams: Promise<ListQuery> }) {
   const user = await requireTenant();
 
-  const bills = await BillingService.getTenantBills(user.id);
-  const proofs = await prisma.paymentProof.findMany({ where: { bill: { tenancy: { tenantId: user.id } } }, select: { ...proofSummarySelect, billId: true }, orderBy: { createdAt: 'desc' } });
+  const raw = await searchParams;
+  const selectedBill = typeof raw.bill === 'string' && raw.bill.trim();
+  const result = await BillListService.forTenant(user.id, raw);
+  const bills = result.records;
+  const proofs = await prisma.paymentProof.findMany({ where: { billId: { in: bills.map(bill => bill.id) }, bill: { tenancy: { tenantId: user.id } } }, select: { ...proofSummarySelect, billId: true }, orderBy: { createdAt: 'desc' } });
 
   return (
     <main className="mx-auto max-w-3xl p-4 pb-24 md:p-6">
       <PageHeader eyebrow="Billing" title="My bills" description="Your charges, payments, and remaining balance."
         action={<Link href="/tenant/payments" className="app-secondary-action">Payment history</Link>} />
 
+      {selectedBill ? <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-primary/5 p-4"><p className="text-sm">Showing the selected bill</p><a href="/tenant/bills" className="app-secondary-action">View all bills</a></div> : <ListControls path="/tenant/bills" query={result.query} statuses={BILL_FILTERS} searchLabel="Search property or room" months />}
+      <p className="mb-4 text-sm text-muted-foreground">{result.total} matching {result.total === 1 ? 'record' : 'records'}</p>
       {bills.length === 0 ? (
         <div className="card-abangta rounded-3xl p-8 text-center">
           <ReceiptText size={36} className="mx-auto mb-3 text-muted-foreground" />
-          <h2 className="font-semibold">No bills yet</h2>
+          <h2 className="font-semibold">No matching bills</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your landlord hasn&apos;t generated a bill yet.
+            Try a different search or clear the filters. New bills appear after your landlord issues them.
           </p>
         </div>
       ) : (
@@ -62,6 +69,7 @@ export default async function TenantBillsPage() {
             return (
               <article
                 key={bill.id}
+                id={`bill-${bill.id}`}
                 className="card-abangta rounded-3xl p-5"
               >
                 {/* Header */}
@@ -159,6 +167,7 @@ export default async function TenantBillsPage() {
           })}
         </div>
       )}
+      <ListPagination path="/tenant/bills" query={result.query} result={result} />
     </main>
   );
 }

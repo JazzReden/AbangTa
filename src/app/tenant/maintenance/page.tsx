@@ -1,6 +1,8 @@
 import { PageHeader } from '@/components/ui/PageHeader';
 import { requireTenant } from '@/lib/auth/session';
-import { MaintenanceService } from '@/services/maintenance/maintenance.service';
+import { MaintenanceListService } from '@/services/maintenance/maintenance-list.service';
+import { ListControls, ListPagination, MAINTENANCE_FILTERS } from '@/components/ui/ListControls';
+import type { ListQuery } from '@/lib/lists/query';
 import { MaintenanceStatusBadge, PriorityBadge } from '@/components/ui/StatusBadge';
 import TenantMaintenanceForm from './TenantMaintenanceForm';
 import { Wrench } from 'lucide-react';
@@ -17,9 +19,10 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-export default async function TenantMaintenancePage() {
+export default async function TenantMaintenancePage({ searchParams }: { searchParams: Promise<ListQuery> }) {
   const user = await requireTenant();
-  const requests = await MaintenanceService.getTenantRequests(user.id);
+  const result = await MaintenanceListService.forTenant(user.id, await searchParams);
+  const requests = result.records;
   const tenancy = await TenantService.getActiveTenancy(user.id);
 
   return (
@@ -37,11 +40,13 @@ export default async function TenantMaintenancePage() {
         <p className="text-xs font-semibold uppercase text-muted-foreground">Your requests</p>
       </div>
 
+      <ListControls path="/tenant/maintenance" query={result.query} statuses={MAINTENANCE_FILTERS} searchLabel="Search requests or room" priorities />
+      <p className="mb-4 text-sm text-muted-foreground">{result.total} matching {result.total === 1 ? 'record' : 'records'}</p>
       {requests.length === 0 ? (
         <div className="card-abangta rounded-3xl p-8 text-center">
           <Wrench size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            No maintenance requests yet.
+            No matching requests. Try another search or clear the filters.
           </p>
         </div>
       ) : (
@@ -71,6 +76,7 @@ export default async function TenantMaintenancePage() {
           ))}
         </div>
       )}
+      <ListPagination path="/tenant/maintenance" query={result.query} result={result} />
     </main>
   );
 }

@@ -1,32 +1,32 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { BillStatus } from '@prisma/client';
+import type { ListQuery } from '@/lib/lists/query';
 import { requireLandlord } from '@/lib/auth/session';
-import { BillingService } from '@/services/billing/billing.service';
+import { BillListService } from '@/services/billing/bill-list.service';
+import { ListControls, ListPagination, BILL_FILTERS } from '@/components/ui/ListControls';
 import { PropertyService } from '@/services/properties/property.service';
 import { formatPeso } from '@/lib/utils/currency';
 import { formatBillingPeriod } from '@/lib/utils/dates';
-import { remainingBalance } from '@/lib/utils/billing';
+import { billStatusFromAmounts, remainingBalance } from '@/lib/utils/billing';
 import { PropertyNav } from '@/components/landlord/PropertyNav';
-import { FilterChips } from '@/components/ui/FilterChips';
 import { BillStatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ReceiptText } from 'lucide-react';
-import { prisma } from '@/lib/db/prisma';
 
 export const metadata = { title: 'Bills' };
 
 export default async function PropertyBillsPage({ params: paramsPromise, searchParams: searchParamsPromise }: {
   params: Promise<{ propertyId: string }>;
-  searchParams: Promise<{ status?: BillStatus }>;
+  searchParams: Promise<ListQuery>;
 }) {
   const params = await paramsPromise;
   const searchParams = await searchParamsPromise;
   const user = await requireLandlord();
-  const property = await PropertyService.getPropertyDetail(params.propertyId, user.id);
+  const property = await PropertyService.getOwnedSummary(params.propertyId, user.id);
   if (!property) notFound();
-  const bills = await BillingService.getPropertyBills(property.id, user.id, searchParams.status);
-  const pendingProofs = await prisma.paymentProof.findMany({ where: { status: 'PENDING', bill: { propertyId: property.id } }, select: { billId: true } });
+  const result = await BillListService.forProperty(property.id, user.id, searchParams);
+  const bills = result.records;
+  const path = `/landlord/properties/${property.id}/bills`;
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-6">
@@ -40,22 +40,13 @@ export default async function PropertyBillsPage({ params: paramsPromise, searchP
         </Link>
       </div>
       <PropertyNav propertyId={property.id} current="bills" />
-      <div className="mb-5">
-        <FilterChips
-          items={[
-            { href: `/landlord/properties/${property.id}/bills`, label: 'All', active: !searchParams.status },
-            { href: `/landlord/properties/${property.id}/bills?status=PENDING`, label: 'Unpaid', active: searchParams.status === 'PENDING' },
-            { href: `/landlord/properties/${property.id}/bills?status=PARTIALLY_PAID`, label: 'Partial', active: searchParams.status === 'PARTIALLY_PAID' },
-            { href: `/landlord/properties/${property.id}/bills?status=PAID`, label: 'Paid', active: searchParams.status === 'PAID' },
-            { href: `/landlord/properties/${property.id}/bills?status=OVERDUE`, label: 'Overdue', active: searchParams.status === 'OVERDUE' },
-          ]}
-        />
-      </div>
+      <ListControls path={path} query={result.query} statuses={BILL_FILTERS} searchLabel="Search tenant, room or property" months />
+      <p className="mb-4 text-sm text-muted-foreground">{result.total} matching {result.total === 1 ? 'record' : 'records'}</p>
       {bills.length === 0 ? (
         <EmptyState
           icon={<ReceiptText size={34} />}
-          title="No bills yet"
-          description="Create a monthly bill for an active tenant."
+          title="No matching bills"
+          description="Try a different search or clear the filters. You can generate a bill for an active tenant."
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -75,16 +66,17 @@ export default async function PropertyBillsPage({ params: paramsPromise, searchP
                     <h2 className="font-semibold">{bill.tenancy.tenant.name}</h2>
                     <p className="text-sm text-muted-foreground">Room {bill.tenancy.room.roomNumber}</p>
                   </div>
-                  <BillStatusBadge status={bill.status} />
+                  <BillStatusBadge status={billStatusFromAmounts(bill.totalAmount, bill.amountPaid, bill.dueDate)} />
                 </div>
                 <p className="text-2xl font-bold">{formatPeso(remaining.toString())}</p>
                 <p className="text-xs text-muted-foreground">Remaining of {formatPeso(bill.totalAmount)}</p>
-                {pendingProofs.some(proof => proof.billId === bill.id) && <p className="mt-2 text-sm font-medium text-primary">GCash proof awaiting verification</p>}
+                {bill.paymentProofs.length > 0 && <p className="mt-2 text-sm font-medium text-primary">GCash proof awaiting verification</p>}
               </Link>
             );
           })}
         </div>
       )}
+      <ListPagination path={path} query={result.query} result={result} />
     </div>
   );
 }

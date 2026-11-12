@@ -206,4 +206,42 @@ suite('Tenant GCash evidence and confirmed-only accounting', () => {
     await prisma.paymentProof.updateMany({ where: { id: { in: second.proofs.map(p => p.id) } }, data: { status: 'REJECTED', pendingBillId: null } });
     expect((await Proofs.getPendingForLandlord(owner, 2)).page).toBe(1);
   });
+  test('history pages include corrections, stay owner scoped and preserve all records across tied dates', async () => {
+    const date = new Date('2026-10-01');
+    await prisma.payment.createMany({ data: Array.from({ length: 45 }, (_, index) => ({
+      id: 'history-' + String(index).padStart(3, '0') + '-' + randomUUID(), billId, tenancyId,
+      amount: 1, paymentDate: date, paymentMethod: 'CASH', recordedById: owner,
+      confirmedAt: date, ...(index === 44 ? { voidedAt: date, voidReason: 'Duplicate entry corrected' } : {}),
+    })) });
+    await prisma.bill.update({ where: { id: billId }, data: { amountPaid: 44, status: 'PARTIALLY_PAID' } });
+    const first = await PaymentService.getTenantPayments(tenant);
+    const second = await PaymentService.getTenantPayments(tenant, 2);
+    const last = await PaymentService.getTenantPayments(tenant, 3);
+    expect(first.total).toBe(45); expect(first.pages).toBe(3);
+    expect(first.payments).toHaveLength(20); expect(second.payments).toHaveLength(20); expect(last.payments).toHaveLength(5);
+    const ids = [...first.payments, ...second.payments, ...last.payments].map(row => row.id);
+    expect(new Set(ids).size).toBe(45); expect(ids).toEqual([...ids].sort().reverse());
+    expect(first.payments[0].voidReason).toBe('Duplicate entry corrected');
+    expect(first.payments[0]).not.toHaveProperty('idempotencyKey');
+    expect(first.payments[0]).not.toHaveProperty('recordedById');
+    expect(first.payments[0]).not.toHaveProperty('notes');
+    for (const invalid of [0, -1, NaN, Infinity, 1.5]) expect((await PaymentService.getTenantPayments(tenant, invalid)).page).toBe(1);
+    expect((await PaymentService.getTenantPayments(tenant, Number.MAX_SAFE_INTEGER)).page).toBe(3);
+    for (const actor of [owner, outsider, users[3]]) expect((await PaymentService.getTenantPayments(actor)).total).toBe(0);
+    expect((await row()).amountPaid.toFixed(2)).toBe('44.00');
+  });
+
+  test('exact authorized reversal retries succeed without changing the ledger, while conflicts and outsiders fail', async () => {
+    const payment = await cash(100);
+    await PaymentService.voidPayment(payment.id, 'Duplicate entry corrected', owner);
+    const original = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    await expect(PaymentService.voidPayment(payment.id, '  Duplicate entry corrected  ', owner)).resolves.toEqual({ success: true });
+    await expect(PaymentService.voidPayment(payment.id, 'A different reason', owner)).rejects.toThrow('different reason');
+    await expect(PaymentService.voidPayment(payment.id, 'Duplicate entry corrected', outsider)).rejects.toThrow('FORBIDDEN');
+    const retried = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    expect(retried.voidedAt).toEqual(original.voidedAt); expect(retried.voidReason).toBe(original.voidReason);
+    expect((await row()).amountPaid.toFixed(2)).toBe('0.00');
+    expect(await ReceiptService.getForUser(payment.id, tenant)).toBeNull();
+  });
+
 });

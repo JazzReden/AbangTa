@@ -6,7 +6,7 @@ import type { AuthIntent } from '@/lib/auth/intent';
 import { SubmitButton, StatefulForm } from '@/components/ui/StatefulForm';
 import { PasswordField } from './PasswordField';
 import { SiteFooter } from '@/components/SiteFooter';
-import { BoardingHouseScenery } from '@/components/BoardingHouseScenery';
+import { BoardingHouseScenery } from '@/components/marketing/BoardingHouseScenery';
 import styles from './AccountPortal.module.css';
 
 export type PortalSearch = { role?: string; callbackUrl?: string; reason?: string; error?: string };

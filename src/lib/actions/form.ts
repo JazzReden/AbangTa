@@ -25,3 +25,12 @@ export function actionError(error: unknown): { error: string } {
   }
   return { error: 'An unexpected error occurred' };
 }
+
+export function validationError(issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>) {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of issues) {
+    const name = String(issue.path[0] ?? '');
+    if (name && !Object.prototype.hasOwnProperty.call(fieldErrors, name)) Object.defineProperty(fieldErrors, name, { value: issue.message, enumerable: true });
+  }
+  return { error: 'Please correct the fields below and try again.', fieldErrors };
+}

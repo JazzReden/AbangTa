@@ -104,13 +104,14 @@ export class AssistantReminders {
   static async runDue(now = new Date(), landlordId?: string) {
     if (!Number.isFinite(now.getTime())) throw new Error('Invalid scheduler time');
     const due = await prisma.assistantReminder.findMany({ where: { landlordId, status: 'SCHEDULED', scheduledAt: { lte: now } }, select: { id: true, landlordId: true }, orderBy: [{ scheduledAt: 'asc' }, { id: 'asc' }], take: 100 });
-    let sent = 0;
+    let sent = 0, failed = 0;
     for (const draft of due) {
       try { if ((await this.send(draft.landlordId, draft.id, true, now, true)).sent) sent++; }
       catch {
+        failed++;
         await prisma.assistantReminder.updateMany({ where: { id: draft.id, status: 'SCHEDULED' }, data: { status: 'FAILED', attemptedAt: now, finishedAt: now, outcome: 'Delivery unavailable or access revoked. Preview and schedule again.' } });
       }
     }
-    return { checked: due.length, sent };
+    return { checked: due.length, sent, failed };
   }
 }

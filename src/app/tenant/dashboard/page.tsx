@@ -1,6 +1,7 @@
+import { TenantNextStep } from '@/components/tenant/TenantNextStep';
 import { PageHeader } from '@/components/ui/PageHeader';
 import Link from 'next/link';
-import { Bell, Building2, CalendarDays, DoorOpen, ReceiptText, Wrench } from 'lucide-react';
+import { ArrowRight, Bell, Building2, CalendarDays, DoorOpen, ReceiptText, Wrench } from 'lucide-react';
 import { requireTenant } from '@/lib/auth/session';
 import { TenantService } from '@/services/tenants/tenant.service';
 import { formatPeso } from '@/lib/utils/currency';
@@ -14,12 +15,12 @@ export const metadata = { title: 'Tenant Dashboard' };
 export default async function TenantDashboardPage() {
   const user = await requireTenant();
   const dashboard = await TenantService.getTenantDashboard(user.id);
-  const reminders = await ReminderService.forTenant(user.id);
 
   if (!dashboard) {
     return <UnassignedTenantHome userId={user.id} name={user.name} />;
   }
 
+  const reminders = await ReminderService.forTenant(user.id);
   const { property, room, tenancy, currentBill, recentPayments, maintenanceRequests, announcements } =
     dashboard;
   const balance = currentBill
@@ -27,38 +28,43 @@ export default async function TenantDashboardPage() {
     : 0;
 
   return (
-    <main className="mx-auto max-w-5xl p-4 pb-28 md:p-6">
-      <PageHeader eyebrow="Welcome home" title={user.name} description={`${property.name} · Room ${room.roomNumber}`} />
+    <main className="mx-auto max-w-6xl p-4 md:p-6">
+      <PageHeader title={user.name} description={`${property.name} · Room ${room.roomNumber}`} />
+
+      <section aria-label="Billing overview" className="mb-5 rounded-3xl bg-foreground p-5 text-background shadow-sm sm:p-7">
+        <p className="text-xs font-semibold uppercase text-background/70">Total due</p>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="break-words text-3xl font-bold tabular-nums sm:text-4xl">{formatPeso(dashboard.outstandingBalance)}</p>
+            {dashboard.earliestUnpaidDueDate ? (
+              <p className="mt-1 text-sm text-background/70">
+                Due {formatDate(dashboard.earliestUnpaidDueDate)}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-background/70">{currentBill ? 'No outstanding balance' : 'No bill generated yet'}</p>
+            )}
+          </div>
+          {(currentBill || dashboard.outstandingBalance > 0) && <BillStatusBadge status={dashboard.outstandingStatus} />}
+        </div>
+        <Link href="/tenant/bills" className="app-billing-action mt-5">
+          View bills <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </section>
+
+      <TenantNextStep step={dashboard.nextStep} />
 
       {reminders.length > 0 && <section className="mb-5 space-y-3 border-y border-border py-4">
         <h2 className="flex items-center gap-2 font-semibold"><Bell size={17} className="text-primary" />Bill reminders</h2>
         {reminders.map(reminder => <div key={reminder.id}><p className="text-sm font-medium">{reminder.title}</p><p className="mt-1 text-sm text-muted-foreground">{reminder.message}</p></div>)}
         <Link href="/tenant/bills" className="inline-flex text-sm font-medium text-primary hover:underline">View unpaid bills</Link>
       </section>}
-      <section className="mb-5 rounded-3xl bg-foreground p-5 text-background shadow-sm">
-        <p className="text-xs font-semibold uppercase text-background/70">Total due</p>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-4xl font-bold">{formatPeso(dashboard.outstandingBalance)}</p>
-            {dashboard.earliestUnpaidDueDate || currentBill ? (
-              <p className="mt-1 text-sm text-background/70">
-                Due {formatDate(dashboard.earliestUnpaidDueDate ?? currentBill!.dueDate)}
-              </p>
-            ) : (
-              <p className="mt-1 text-sm text-background/70">No bill generated yet</p>
-            )}
-          </div>
-          {(currentBill || dashboard.outstandingBalance > 0) && <BillStatusBadge status={dashboard.outstandingStatus} />}
-        </div>
-      </section>
-
-      <div className="mb-5 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
         <InfoCard icon={<Building2 />} label="Property" value={property.name} detail={property.address} />
         <InfoCard icon={<DoorOpen />} label="Room" value={room.roomNumber} detail={tenancy.bed ? tenancy.bed.label : `${room.capacity} capacity`} />
         <InfoCard icon={<CalendarDays />} label="Rent" value={formatPeso(tenancy.monthlyRent)} detail="monthly" />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <section className="space-y-5">
           <div className="card-abangta rounded-3xl p-5">
             <div className="mb-4 flex items-center gap-2">
@@ -100,6 +106,9 @@ export default async function TenantDashboardPage() {
             <div className="mb-4 flex items-center gap-2">
               <Wrench size={17} className="text-primary" />
               <h2 className="font-semibold">Maintenance</h2>
+              <Link href="/tenant/maintenance" className="ml-auto inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
+                View requests
+              </Link>
             </div>
             {maintenanceRequests.length === 0 ? (
               <p className="text-sm text-muted-foreground">No requests submitted.</p>
@@ -125,7 +134,12 @@ export default async function TenantDashboardPage() {
 
         <aside className="space-y-5">
           <div className="card-abangta rounded-3xl p-5">
-            <h2 className="mb-4 font-semibold">Recent payments</h2>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3">
+              <h2 className="font-semibold">Recent payments</h2>
+              <Link href="/tenant/payments" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary hover:underline">
+                Payment history
+              </Link>
+            </div>
             {recentPayments.length === 0 ? (
               <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
             ) : (
@@ -166,20 +180,6 @@ export default async function TenantDashboardPage() {
         </aside>
       </div>
 
-      <div className="sticky-bottom-bar !bottom-16 md:hidden">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase text-muted-foreground">Total due</p>
-            <p className="text-lg font-bold">{formatPeso(dashboard.outstandingBalance)}</p>
-          </div>
-          <Link
-            href="/tenant/bills"
-            className="rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
-          >
-            View Statement
-          </Link>
-        </div>
-      </div>
     </main>
   );
 }

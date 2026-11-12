@@ -1,3 +1,4 @@
+import { OperationalHealth } from '@/services/operations/health.service';
 import { ReminderService } from '@/services/billing/reminder.service';
 import { validJobAuthorization } from '@/lib/security/job-auth';
 import { checkRateLimit } from '@/lib/security/rate-limit';
@@ -10,7 +11,11 @@ export async function POST(request: Request) {
   if (!validJobAuthorization(request.headers.get('authorization'), process.env.BILL_REMINDERS_SECRET)) return Response.json({ error: 'Unauthorized' }, { status: 401, headers });
   try {
     if (!(await checkRateLimit('reminder-job', { limit: 1, windowMs: 60000 })).allowed) return Response.json({ error: 'Please wait before running again.' }, { status: 429, headers: { ...headers, 'Retry-After': '60' } });
+    await OperationalHealth.started();
     const assistant = await AssistantReminders.runDue();
-    return Response.json({ ...await ReminderService.runDue(), assistant }, { headers });
-  } catch { return Response.json({ error: 'Reminder processing is temporarily unavailable.' }, { status: 503, headers }); }
+    const result = await ReminderService.runDue();
+    if (assistant.failed > 0) throw new Error('Some scheduled reminders could not be delivered.');
+    await OperationalHealth.succeeded();
+    return Response.json({ ...result, assistant }, { headers });
+  } catch (error) { await OperationalHealth.failed(error); return Response.json({ error: 'Reminder processing is temporarily unavailable.' }, { status: 503, headers }); }
 }

@@ -8,7 +8,7 @@ import { formatDateMed } from '@/lib/utils/dates';
 type Queue = Awaited<ReturnType<typeof PaymentProofService.getPendingForLandlord>>;
 
 export function PendingGCashProofs({ queue }: { queue: Queue }) {
-  return <section id="pending-gcash-proofs" aria-labelledby="pending-gcash-title" className="mb-6 border-y border-border py-5">
+  return <section id="pending-gcash-proofs" aria-labelledby="pending-gcash-title" className="card-abangta mb-6 p-6">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
       <h2 id="pending-gcash-title" className="flex min-w-0 items-center gap-2 text-sm font-semibold">
         <ReceiptText size={16} className="shrink-0 text-primary" aria-hidden="true" />

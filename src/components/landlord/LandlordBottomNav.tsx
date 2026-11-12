@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, Bell, User } from 'lucide-react';
+import { ListChecks, LayoutDashboard, Building2, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/landlord/dashboard', icon: LayoutDashboard, label: 'Home' },
+  { href: '/landlord/action-center', icon: ListChecks, label: 'Actions' },
   { href: '/landlord/properties', icon: Building2, label: 'Properties' },
   { href: '/landlord/notifications', icon: Bell, label: 'Alerts' },
   { href: '/landlord/profile', icon: User, label: 'Profile' },
@@ -20,7 +21,7 @@ export default function LandlordBottomNav() {
       className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 pb-[env(safe-area-inset-bottom)] lg:hidden z-50"
       aria-label="Mobile navigation"
     >
-      <div className="grid grid-cols-4 gap-1 px-2 py-2">
+      <div className="grid grid-cols-5 gap-1 px-2 py-2">
         {navItems.map((item) => {
           const isActive =
             item.href === '/landlord/dashboard'

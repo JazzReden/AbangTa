@@ -1,3 +1,5 @@
+import { ActionCenterService } from '@/services/operations/action-center.service';
+import { DailyBrief } from '@/components/landlord/DailyBrief';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { requireLandlord } from '@/lib/auth/session';
 import { PropertyService } from '@/services/properties/property.service';
@@ -9,6 +11,7 @@ import {
   AlertCircle,
   Wrench,
   CheckCircle2,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { PaymentProofService } from '@/services/billing/payment-proof.service';
@@ -21,48 +24,66 @@ export const metadata = { title: 'Dashboard' };
 
 export default async function LandlordDashboardPage({ searchParams }: { searchParams: Promise<{ proofPage?: string }> }) {
   const user = await requireLandlord();
-  const stats = await PropertyService.getDashboardStats(user.id);
   const { proofPage } = await searchParams;
-  const pendingProofs = await PaymentProofService.getPendingForLandlord(user.id, /^\d{1,6}$/.test(proofPage ?? '') ? Number(proofPage) : 1);
+  const page = /^\d{1,6}$/.test(proofPage ?? '') ? Number(proofPage) : 1;
+  const [stats, pendingProofs, summary] = await Promise.all([
+    PropertyService.getDashboardStats(user.id),
+    PaymentProofService.getPendingForLandlord(user.id, page),
+    ActionCenterService.summary(user.id),
+  ]);
 
-  const hour = new Date().getHours();
+  const hour = Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Manila',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format());
   const greeting =
     hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const firstName = user.name.split(' ')[0];
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
       <DashboardProofRefresh revision={pendingProofRevision(user.id, pendingProofs)} page={pendingProofs.page} />
       <AssistantRefreshSignal revision={JSON.stringify([stats.collectedThisMonth, stats.outstandingBalance, stats.openMaintenanceRequests, pendingProofs.total])} />
       {/* Header */}
-      <PageHeader eyebrow="Overview" title={`${greeting}, ${firstName}`} description="Your properties at a glance." />
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        description="Your properties at a glance. Your next steps, ready."
+        action={stats.totalProperties > 0 ? (
+          <Link href="/landlord/properties/new" className="app-primary-action">
+            <Plus size={18} aria-hidden="true" /> Add property
+          </Link>
+        ) : undefined}
+      />
+
+      <DailyBrief summary={summary} />
 
       {/* Financial summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="app-rent-summary bg-primary rounded-2xl p-5 text-primary-foreground">
+        <div className="app-rent-summary bg-primary rounded-2xl p-6 text-primary-foreground">
           <p className="text-xs font-medium uppercase tracking-wider opacity-80 mb-1">
             Expected Rent
           </p>
-          <p className="text-2xl font-bold">{formatPeso(stats.expectedMonthlyRent)}</p>
+          <p className="break-words text-2xl font-bold tabular-nums">{formatPeso(stats.expectedMonthlyRent)}</p>
           <p className="text-xs opacity-70 mt-1">this month</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-border/50 shadow-sm">
+        <div className="card-abangta app-dashboard-panel p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
             Collected
           </p>
-          <p className="text-2xl font-bold text-green-600">
+          <p className="break-words text-2xl font-bold tabular-nums text-green-600">
             {formatPeso(stats.collectedThisMonth)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">this month</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-border/50 shadow-sm">
+        <div className="card-abangta app-dashboard-panel p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
             Outstanding
           </p>
-          <p className="text-2xl font-bold text-destructive">
+          <p className="break-words text-2xl font-bold tabular-nums text-destructive">
             {formatPeso(stats.outstandingBalance)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">balance due</p>
@@ -106,7 +127,7 @@ export default async function LandlordDashboardPage({ searchParams }: { searchPa
       {/* Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Maintenance */}
-        <div className="bg-white rounded-2xl p-5 border border-border/50 shadow-sm">
+        <div className="card-abangta app-dashboard-panel p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Wrench size={16} className="text-orange-500" />
@@ -137,14 +158,14 @@ export default async function LandlordDashboardPage({ searchParams }: { searchPa
         </div>
 
         {/* Vacancies */}
-        <div className="bg-white rounded-2xl p-5 border border-border/50 shadow-sm">
+        <div className="card-abangta app-dashboard-panel p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle size={16} className="text-blue-500" />
             <h2 className="font-semibold text-sm">Vacant Rooms &amp; Beds</h2>
           </div>
 
           {stats.vacantRooms === 0 && stats.availableBeds === 0 ? (
-            <p className="text-sm text-muted-foreground">All rooms are occupied!</p>
+            <p className="text-sm text-muted-foreground">No rooms or beds are currently available.</p>
           ) : (
             <p className="text-sm text-muted-foreground">
               {stats.vacantRooms} room{stats.vacantRooms !== 1 ? 's' : ''} available. Invite
@@ -204,9 +225,9 @@ function StatCard({
 
   return (
     <Link href={href}>
-      <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm hover:shadow-md transition cursor-pointer">
+      <div className="card-abangta app-stat-card h-full p-5">
         <div className={`inline-flex rounded-xl p-2 mb-2 ${colorMap[color]}`}>{icon}</div>
-        <p className="text-2xl font-bold text-foreground">{value}</p>
+        <p className="break-words text-2xl font-bold tabular-nums text-foreground">{value}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
       </div>
     </Link>

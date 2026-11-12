@@ -4,6 +4,7 @@ import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js';
 const nextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL('.', import.meta.url)),
   poweredByHeader: false,
+  devIndicators: false,
   experimental: { serverActions: { bodySizeLimit: '5mb' } },
   async headers() {
     const common = { source: '/:path*', headers: [

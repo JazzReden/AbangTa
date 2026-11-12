@@ -2,12 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireTenant } from '@/lib/auth/session';
-import { actionError, optionalString } from '@/lib/actions/form';
+import { actionError, validationError, optionalString } from '@/lib/actions/form';
 import { createMaintenanceSchema } from '@/lib/validations';
 import { MaintenanceService } from '@/services/maintenance/maintenance.service';
 import { prisma } from '@/lib/db/prisma';
 
-export type MaintenanceFormState = { error?: string; success?: boolean };
+export type MaintenanceFormState = { error?: string; success?: boolean; fieldErrors?: Record<string, string> };
 
 export async function createMaintenanceRequestAction(
   _state: MaintenanceFormState,
@@ -24,7 +24,7 @@ export async function createMaintenanceRequestAction(
     });
 
     if (!parsed.success) {
-      return { error: parsed.error.issues[0]?.message ?? 'Invalid request details' };
+      return validationError(parsed.error.issues);
     }
 
     // Get active tenancy

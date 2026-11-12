@@ -126,7 +126,7 @@ export function NadineAssistant({ properties, contextKey, positionKey, audience 
     try { await nadineRequest('/api/assistant/reminders', { operation: 'cancel', id }); await schedules(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to cancel.'); }
   }
-  const content = <aside ref={floating.root} style={floating.style} aria-label="Ishi assistant" className={`pointer-events-none fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-[60] h-20 w-14 sm:h-24 sm:w-16 lg:bottom-5 [@media(max-height:500px)]:h-16 [@media(max-height:500px)]:w-20`}>
+  const content = <aside ref={floating.root} style={floating.style} aria-label="Ishi assistant" className={`pointer-events-none fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-3 z-[60] h-20 w-14 sm:h-24 sm:w-16 lg:bottom-24 [@media(max-height:500px)]:h-16 [@media(max-height:500px)]:w-20`}>
     {open && <section role="dialog" aria-labelledby="nadine-title" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } }}
       style={floating.panelStyle} className="ishi-mobile-panel pointer-events-auto fixed flex max-h-[min(36rem,calc(100dvh-2rem))] w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-white shadow-lg">
       <header className="flex shrink-0 items-center gap-2 border-b border-border p-3">

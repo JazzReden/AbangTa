@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
+  ListChecks,
   LayoutDashboard,
   Building2,
   Bell,
@@ -16,6 +17,7 @@ import type { SessionUser } from '@/types';
 
 const navItems = [
   { href: '/landlord/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/landlord/action-center', icon: ListChecks, label: 'Actions' },
   { href: '/landlord/properties', icon: Building2, label: 'Properties' },
   { href: '/landlord/notifications', icon: Bell, label: 'Notifications' },
   { href: '/landlord/profile', icon: User, label: 'Profile' },
@@ -25,9 +27,9 @@ export default function LandlordSidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white border-r border-border/50 flex-col z-50">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-dvh w-64 bg-white border-r border-border/50 flex-col z-50">
       {/* Logo */}
-      <div className="p-5 border-b border-border/50">
+      <div className="shrink-0 p-5 border-b border-border/50">
         <div className="flex items-center gap-2">
           <div className="bg-primary rounded-xl p-2">
             <Building className="text-primary-foreground" size={20} />
@@ -40,7 +42,7 @@ export default function LandlordSidebar({ user }: { user: SessionUser }) {
       </div>
 
       {/* User */}
-      <div className="p-4 border-b border-border/50">
+      <div className="shrink-0 p-4 border-b border-border/50">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-primary font-semibold text-sm">
@@ -55,7 +57,7 @@ export default function LandlordSidebar({ user }: { user: SessionUser }) {
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 p-3 space-y-0.5" aria-label="Sidebar navigation">
+      <nav className="min-h-0 flex-1 overflow-y-auto p-3 space-y-0.5" aria-label="Sidebar navigation">
         {navItems.map((item) => {
           const isActive =
             item.href === '/landlord/dashboard'
@@ -82,13 +84,13 @@ export default function LandlordSidebar({ user }: { user: SessionUser }) {
       </nav>
 
       {/* Sign out */}
-      <div className="p-3 border-t border-border/50">
+      <div className="shrink-0 p-3 border-t border-border/50">
         <button
           onClick={() => signOut({ callbackUrl: '/auth/login' })}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition w-full"
+          className="flex min-h-12 items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition w-full"
         >
-          <LogOut size={17} />
-          Sign Out
+          <LogOut size={17} className="shrink-0" aria-hidden="true" />
+          Sign out
         </button>
       </div>
     </aside>

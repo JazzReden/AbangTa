@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
+import { operationEvent } from '@/lib/operations/events';
 import { createHash } from 'node:crypto';
 
 const globalForPrisma = globalThis as unknown as {
@@ -15,13 +16,12 @@ const canReuse = cached && globalForPrisma.prismaSchema === schemaKey &&
     return typeof (cached as unknown as Record<string, { findMany?: unknown }>)[delegate]?.findMany === 'function';
   });
 
-export const prisma = canReuse ? cached :
-  new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['error', 'warn']
-        : ['error'],
-  });
+function createClient() {
+  const client = new PrismaClient({ log: [{ emit: 'event', level: 'error' }] });
+  client.$on('error', () => operationEvent('database.error'));
+  return client;
+}
+export const prisma = canReuse ? cached : createClient();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;

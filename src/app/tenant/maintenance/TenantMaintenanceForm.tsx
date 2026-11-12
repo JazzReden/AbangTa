@@ -1,29 +1,17 @@
 'use client';
 
-import { useActionState } from 'react';
+import { StatefulForm, SubmitButton } from '@/components/ui/StatefulForm';
 import { createMaintenanceRequestAction } from './actions';
 
 const CATEGORIES = ['PLUMBING', 'ELECTRICAL', 'WATER', 'ROOM', 'OTHER'];
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
-const initialState = { error: undefined as string | undefined, success: false };
-
 export default function TenantMaintenanceForm() {
-  const [state, formAction, isPending] = useActionState(
-    createMaintenanceRequestAction,
-    initialState
-  );
-
-  if (state.success) {
-    return (
-      <div className="rounded-2xl bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm font-medium">
-        ✓ Your request has been submitted. Your landlord will be notified.
-      </div>
-    );
-  }
-
   return (
-    <form action={formAction} className="space-y-4">
+    <StatefulForm action={async (_state, data) => {
+      const result = await createMaintenanceRequestAction({}, data);
+      return { ...result, success: result.success ? 'Your request has been submitted. Your landlord will be notified.' : undefined };
+    }} className="space-y-4">
       <div>
         <label htmlFor="title" className="block text-sm font-medium mb-1.5">
           Title
@@ -32,7 +20,7 @@ export default function TenantMaintenanceForm() {
           id="title"
           name="title"
           type="text"
-          required
+          required minLength={5} maxLength={200}
           placeholder="e.g. Leaking faucet in bathroom"
           className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring transition"
         />
@@ -46,7 +34,7 @@ export default function TenantMaintenanceForm() {
           id="description"
           name="description"
           rows={3}
-          required
+          required minLength={10} maxLength={2000}
           placeholder="Please describe the issue in detail…"
           className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring transition resize-none"
         />
@@ -88,22 +76,7 @@ export default function TenantMaintenanceForm() {
         </div>
       </div>
 
-      {state?.error && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-xl px-4 py-2.5">
-          {state.error}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full bg-primary text-primary-foreground rounded-xl py-2.5 font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition"
-      >
-        {isPending && (
-          <span className="animate-spin rounded-full border-2 border-white border-t-transparent h-4 w-4" />
-        )}
-        {isPending ? 'Submitting…' : 'Submit Request'}
-      </button>
-    </form>
+      <SubmitButton className="flex min-h-11 w-full items-center justify-center rounded-xl bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-50">Submit request</SubmitButton>
+    </StatefulForm>
   );
 }

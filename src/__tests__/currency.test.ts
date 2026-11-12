@@ -4,7 +4,7 @@ import {
   calculateEqualSplit,
   calculateMeteredCharge,
   formatPeso,
-} from '../currency';
+} from '@/lib/utils/currency';
 
 describe('currency utilities', () => {
   it('formats Philippine peso amounts', () => {

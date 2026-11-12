@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 
 export function PropertyNav({
   propertyId,
@@ -24,18 +23,13 @@ export function PropertyNav({
   ] as const;
 
   return (
-    <nav aria-label="Property sections" className="mb-5 grid grid-cols-3 gap-2 p-1 sm:flex sm:flex-wrap">
+    <nav aria-label="Property sections" className="app-property-nav">
       {items.map((item) => (
         <Link
           key={item.id}
           href={item.href}
           aria-current={current === item.id ? 'page' : undefined}
-          className={cn(
-            'inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full px-2 py-2 text-xs sm:px-4 sm:text-sm font-medium ring-1',
-            current === item.id
-              ? 'bg-foreground text-background ring-foreground'
-              : 'bg-white text-muted-foreground ring-border'
-          )}
+          className="app-property-tab"
         >
           {item.label}
         </Link>

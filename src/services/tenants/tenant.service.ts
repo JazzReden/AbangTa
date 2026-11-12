@@ -1,6 +1,7 @@
 import { withTransactionRetry } from "@/lib/db/transaction-retry";
 import { randomBytes } from 'node:crypto';
 import Decimal from 'decimal.js';
+import { tenantNextStep } from '@/lib/billing/tenant-next-step';
 import { prisma } from '@/lib/db/prisma';
 import { assertLandlordOwnsProperty } from '@/lib/permissions';
 import { invitationToken, tokenDigest } from '@/lib/security/tokens';
@@ -166,7 +167,7 @@ export class TenantService {
     const tenancy = await this.getActiveTenancy(tenantId);
     if (!tenancy) return null;
 
-    const bills = await prisma.bill.findMany({ where: { tenancy: { tenantId }, cancelledAt: null, status: { not: 'CANCELLED' } }, select: { totalAmount: true, dueDate: true, payments: { where: { voidedAt: null }, select: { amount: true } } } });
+    const bills = await prisma.bill.findMany({ where: { tenancy: { tenantId }, cancelledAt: null, status: { not: 'CANCELLED' } }, select: { id: true, totalAmount: true, dueDate: true, paymentProofs: { select: { status: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1 }, payments: { where: { voidedAt: null }, select: { amount: true } } } });
     const unpaid = bills.map(bill => ({ ...bill, paid: bill.payments.reduce((sum, p) => sum.plus(p.amount), new Decimal(0)) }))
       .map(bill => ({ ...bill, remaining: Decimal.max(0, new Decimal(bill.totalAmount).minus(bill.paid)) })).filter(bill => bill.remaining.greaterThan(0));
     const outstandingBalance = unpaid.reduce((sum, bill) => sum.plus(bill.remaining), new Decimal(0)).toNumber();
@@ -205,6 +206,7 @@ export class TenantService {
       ]);
 
     return {
+      nextStep: tenantNextStep(unpaid),
       outstandingBalance,
       earliestUnpaidDueDate,
       outstandingStatus,

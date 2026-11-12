@@ -233,7 +233,7 @@ suite('Nadine isolated records and authorized reminder delivery', () => {
     const draft = await Reminders.preview(owner, billId, 'en'), due = new Date(Date.now() + 120000);
     await Reminders.schedule(owner, draft.id, due, true);
     await prisma.property.update({ where: { id: properties[0] }, data: { landlordId: outsider } });
-    await Reminders.runDue(due, owner);
+    expect((await Reminders.runDue(due, owner)).failed).toBe(1);
     expect((await prisma.assistantReminder.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe('FAILED');
     expect(await prisma.notification.count({ where: { userId: tenant } })).toBe(0);
   });

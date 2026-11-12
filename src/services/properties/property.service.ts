@@ -7,6 +7,10 @@ import { checkRateLimit } from '@/lib/security/rate-limit';
 import { getCurrentBillingPeriod } from '@/lib/utils/dates';
 
 export class PropertyService {
+  static async getOwnedSummary(propertyId: string, landlordId: string) {
+    return prisma.property.findFirst({ where: { id: propertyId, landlordId }, select: { id: true, name: true } });
+  }
+
   /** Create a new property for a landlord. */
   static async create(landlordId: string, input: CreatePropertyInput) {
     return prisma.property.create({
@@ -161,10 +165,10 @@ export class PropertyService {
   static async getDashboardStats(landlordId: string) {
     const properties = await prisma.property.findMany({
       where: { landlordId, archivedAt: null },
-      include: {
+      select: {
         rooms: {
           where: { archivedAt: null },
-          select: { status: true, monthlyRent: true, rentalMode: true, beds: { where: { archivedAt: null }, select: { status: true, tenancies: { where: { status: { in: ['ACTIVE', 'PENDING'] } }, select: { id: true } } } } },
+          select: { status: true, rentalMode: true, beds: { where: { archivedAt: null }, select: { status: true, tenancies: { where: { status: { in: ['ACTIVE', 'PENDING'] } }, select: { id: true } } } } },
         },
       },
     });
@@ -176,66 +180,58 @@ export class PropertyService {
     const vacantRooms = allRooms.filter((r) => r.status === 'VACANT').length;
     const availableBeds = allRooms.filter(room => room.rentalMode === 'PER_BED' && room.status !== 'MAINTENANCE').flatMap(room => room.beds).filter(bed => bed.status !== 'MAINTENANCE' && !bed.tenancies.length).length;
 
-    // Active tenants
-    const activeTenants = await prisma.tenancy.count({
-      where: {
-        property: { landlordId },
-        status: 'ACTIVE',
-      },
-    });
-
-    // Expected monthly rent from active tenancies
-    const activeTenancies = await prisma.tenancy.findMany({
-      where: { property: { landlordId }, status: 'ACTIVE' },
-      select: { monthlyRent: true },
-    });
-    const expectedMonthlyRent = activeTenancies
-      .reduce((sum, t) => sum.plus(new Decimal(t.monthlyRent)), new Decimal(0))
-      .toNumber();
-
-    // Payments this calendar month
     const { start: monthStart, end: monthEnd } = getCurrentBillingPeriod();
+    const paymentDate = { gte: monthStart, lte: monthEnd };
+    const [activeTenancies, monthPayments, advanceMovements, openBills, openMaintenanceRequests] =
+      await Promise.all([
+        prisma.tenancy.aggregate({
+          where: { property: { landlordId }, status: 'ACTIVE' },
+          _count: { _all: true },
+          _sum: { monthlyRent: true },
+        }),
+        prisma.payment.aggregate({
+          where: {
+            tenancy: { property: { landlordId } },
+            paymentDate,
+            paymentMethod: { not: 'ADVANCE' },
+            voidedAt: null,
+          },
+          _sum: { amount: true },
+        }),
+        prisma.tenantFundEntry.groupBy({
+          by: ['kind'],
+          where: {
+            tenancy: { property: { landlordId } },
+            kind: { in: ['ADVANCE_RECEIVED', 'ADVANCE_REFUNDED'] },
+            voidedAt: null,
+            paymentDate,
+          },
+          _sum: { amount: true },
+        }),
+        prisma.bill.aggregate({
+          where: {
+            property: { landlordId },
+            status: { in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] },
+            cancelledAt: null,
+          },
+          _sum: { totalAmount: true, amountPaid: true },
+        }),
+        prisma.maintenanceRequest.count({
+          where: {
+            property: { landlordId },
+            status: { in: ['SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'] },
+          },
+        }),
+      ]);
 
-    const monthPayments = await prisma.payment.findMany({
-      where: {
-        tenancy: { property: { landlordId } },
-        paymentDate: { gte: monthStart, lte: monthEnd },
-        paymentMethod: { not: 'ADVANCE' },
-        voidedAt: null,
-      },
-      select: { amount: true },
-    });
-    const advanceMovements = await prisma.tenantFundEntry.findMany({ where: { tenancy: { property: { landlordId } },
-      kind: { in: ['ADVANCE_RECEIVED', 'ADVANCE_REFUNDED'] }, voidedAt: null, paymentDate: { gte: monthStart, lte: monthEnd } }, select: { kind: true, amount: true } });
-    const collectedThisMonth = monthPayments
-      .reduce((sum, p) => sum.plus(new Decimal(p.amount)), new Decimal(0))
-      .plus(advanceMovements.reduce((sum, entry) => entry.kind === 'ADVANCE_RECEIVED' ? sum.plus(entry.amount) : sum.minus(entry.amount), new Decimal(0)))
+    const collectedThisMonth = advanceMovements.reduce((sum, entry) => {
+      const amount = entry._sum.amount ?? 0;
+      return entry.kind === 'ADVANCE_RECEIVED' ? sum.plus(amount) : sum.minus(amount);
+    }, new Decimal(monthPayments._sum.amount ?? 0)).toNumber();
+
+    const outstandingBalance = new Decimal(openBills._sum.totalAmount ?? 0)
+      .minus(openBills._sum.amountPaid ?? 0)
       .toNumber();
-
-    // Outstanding balance from open bills
-    const openBills = await prisma.bill.findMany({
-      where: {
-        property: { landlordId },
-        status: { in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] },
-        cancelledAt: null,
-      },
-      select: { totalAmount: true, amountPaid: true },
-    });
-    const outstandingBalance = openBills
-      .reduce(
-        (sum, b) =>
-          sum.plus(new Decimal(b.totalAmount)).minus(new Decimal(b.amountPaid)),
-        new Decimal(0)
-      )
-      .toNumber();
-
-    // Open maintenance requests
-    const openMaintenanceRequests = await prisma.maintenanceRequest.count({
-      where: {
-        property: { landlordId },
-        status: { in: ['SUBMITTED', 'ACKNOWLEDGED', 'IN_PROGRESS'] },
-      },
-    });
 
     return {
       totalProperties,
@@ -243,8 +239,8 @@ export class PropertyService {
       occupiedRooms,
       vacantRooms,
       availableBeds,
-      activeTenants,
-      expectedMonthlyRent,
+      activeTenants: activeTenancies._count._all,
+      expectedMonthlyRent: new Decimal(activeTenancies._sum.monthlyRent ?? 0).toNumber(),
       collectedThisMonth,
       outstandingBalance,
       openMaintenanceRequests,

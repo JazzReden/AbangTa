@@ -798,3 +798,13 @@ model AssistantReminder {
   @@index([landlordId, createdAt])
   @@map("assistant_reminders")
 }
+
+// One bounded row per operational job, shared across instances and restarts.
+model OperationHeartbeat {
+  name                String    @id @db.VarChar(64)
+  lastStartedAt       DateTime?
+  lastSucceededAt     DateTime?
+  lastFailedAt        DateTime?
+  consecutiveFailures Int       @default(0)
+  @@map("operation_heartbeats")
+}

@@ -23,7 +23,10 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ops:check": "node scripts/operations-check.mjs",
+    "test:ops": "node --test scripts/operations-check.test.mjs scripts/recovery-compare.test.mjs",
+    "ops:rehearse-recovery": "node scripts/rehearse-recovery.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
